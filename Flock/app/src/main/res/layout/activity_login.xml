@@ -12,9 +12,11 @@
         android:gravity="center"
         android:layout_weight="1">
 
-        <RoundedImageView
+        <ImageView
             android:layout_width="250dp"
             android:layout_height="250dp"
+            android:scaleType="fitXY"
+            android:id="@+id/no_login"
             android:src="@drawable/login_img"/>
     </LinearLayout>
 
@@ -33,6 +35,8 @@
         <Button
             android:id="@+id/login_button"
             style="?metaButtonBarButtonStyle"
+            android:textSize="30dp"
+            android:padding="5dp"
             android:layout_width="wrap_content"
             android:background="@drawable/rounded_button"
             android:layout_height="wrap_content"

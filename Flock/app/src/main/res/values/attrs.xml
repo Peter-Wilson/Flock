@@ -9,4 +9,6 @@
         <attr name="metaButtonBarButtonStyle" format="reference" />
     </declare-styleable>
 
+    <declare-styleable name="RoundedImageView">
+    </declare-styleable>
 </resources>
