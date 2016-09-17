@@ -10,7 +10,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:400018582343:android:1e8722f50a82aa72",
         "android_client_info": {
-          "package_name": "com.flockapp"
+          "package_name": "brockbadgers.flock"
         }
       },
       "oauth_client": [
