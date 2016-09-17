@@ -18,10 +18,10 @@
             android:layout_height="match_parent"
             android:background="@color/colorPrimary"
             app:popupTheme="@style/AppTheme.PopupOverlay" />
-
+ati
     </android.support.design.widget.AppBarLayout>
 
-    <include layout="@layout/activity_login" />
+    <include layout="@layout/layout_main" />
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fab"
