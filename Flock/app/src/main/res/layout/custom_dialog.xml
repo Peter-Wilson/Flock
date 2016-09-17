@@ -26,7 +26,6 @@
         <Button
             android:id="@+id/btn_yes"
             android:layout_gravity="center_vertical|center_horizontal"
-            android:layout_marginLeft="60dp"
             android:layout_width="100dp"
             android:layout_height="30dp"
             android:background="@android:color/white"
