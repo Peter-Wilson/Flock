@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_margin="10dp"
-        android:text="Name wants to add you to the group.\n Do you accept?\n"
+        android:text="Flock wants to change your device settings.\n\n Allow Flock to access my location?"
         android:textColor="@android:color/white"
         android:textSize="17dp"
         android:textStyle="bold"/>
