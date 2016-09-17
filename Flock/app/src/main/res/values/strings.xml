@@ -5,4 +5,7 @@
     <string name="title_activity_login">LoginActivity</string>
     <string name="login_button">Login</string>
     <string name="firebase_url">https://flock-d819c.firebaseio.com/</string>
+    <string name="firebase_id">Firebase ID</string>
+    <string name="sender_id">702826245822</string>
+    <string name="user_id">USER ID</string>
 </resources>
