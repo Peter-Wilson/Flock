@@ -21,6 +21,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import brockbadgers.flock.MainActivity;
+import brockbadgers.flock.R;
 
 public class AndroidLocationServices extends Service {
 
@@ -100,7 +101,7 @@ public class AndroidLocationServices extends Service {
                     Log.e("request", jsonArray.toString());
 
                     new LocationWebService().execute(new String[] {
-                            SyncStateContract.Constants.TRACK_URL, jsonArray.toString() });
+                            getString(R.string.firebase_url), jsonArray.toString() });
                 } catch (Exception e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
