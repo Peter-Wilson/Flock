@@ -1,27 +1,27 @@
 {
   "project_info": {
-    "project_number": "400018582343",
-    "firebase_url": "https://flock-e3d5c.firebaseio.com",
-    "project_id": "flock-e3d5c",
-    "storage_bucket": "flock-e3d5c.appspot.com"
+    "project_number": "702826245822",
+    "firebase_url": "https://flock-d819c.firebaseio.com",
+    "project_id": "flock-d819c",
+    "storage_bucket": "flock-d819c.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:400018582343:android:1e8722f50a82aa72",
+        "mobilesdk_app_id": "1:702826245822:android:2adef8a871bebb4a",
         "android_client_info": {
           "package_name": "brockbadgers.flock"
         }
       },
       "oauth_client": [
         {
-          "client_id": "400018582343-ukbruko6iadn4isuapmvlagi97so8ub9.apps.googleusercontent.com",
+          "client_id": "702826245822-94h4uqpc8s83tfst5k4idcarfaqt6oc7.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBVyGSAoN-IxeLUeD8wpzWyR3vDFVI_QZU"
+          "current_key": "AIzaSyBWFAaGtQ0VTocHAh2-HLV9v79qpbuIDJk"
         }
       ],
       "services": {
