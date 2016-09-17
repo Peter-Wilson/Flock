@@ -8,6 +8,7 @@ public class Person {
     private double person_lat;  //Latitude of house
     private double person_long; //Longitude of house
     private String person_name;
+    private int id;
 
     public Person(double _lat, double _long){
 
@@ -38,5 +39,13 @@ public class Person {
 
     public void setName(String name){
         this.person_name = name;
+    }
+
+    public int getId(){
+        return this.id;
+    }
+
+    public void setId(int newId){
+        this.id = newId;
     }
 }

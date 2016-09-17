@@ -5,6 +5,7 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -34,6 +35,9 @@ import com.google.firebase.FirebaseApp;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import classes.Person;
 
@@ -44,6 +48,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     boolean googleClientConnected = false; //if the google api client is connected
     boolean waitForConnect = false; //whether to wait to populate the map until google api client is connected
     Location currentLoc; //the currently used location
+    double testLat = 43.476265;
+    double testLong = -80.542684;
+    HashMap hm = new HashMap();
+    ArrayList<Person> people;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,24 +140,50 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .build();
         map.moveCamera(CameraUpdateFactory.newCameraPosition(startingPos));
 
-        addPeopleMarkersToMap();
-    }
+        Person testPerson = new Person(testLat, testLong);
 
-    public void addPeopleMarkersToMap(){
-
-        Person testPerson = new Person(43.476265, -80.542684);
-
-        ArrayList<Person> people = new ArrayList<>();
+        people = new ArrayList<>();
+        ArrayList<MarkerOptions> markersOfPeople = new ArrayList<>();
 
         people.add(testPerson);
 
+        final Handler h = new Handler();
+        final int delay = 3 * 1000;
+
+        h.postDelayed(new Runnable(){
+            public void run(){
+
+                addPeopleMarkersToMap();
+
+                h.postDelayed(this, delay);
+            }
+        }, delay);
+
+
+    }
+
+    public void addPeopleMarkersToMap(){
+        
+
 
         for(Person p:people){
-            LatLng loc;
-            loc = new LatLng(p.getLat(), p.getLong());
-            map.addMarker(new MarkerOptions()
-                    .position(loc)
-                    .title("Peter is lame"));
+            if (hm.containsKey(p.getId())) {
+                Marker marker = (Marker)hm.get(p.getId());
+                marker.setPosition(new LatLng(p.getLat(), p.getLong())); // Update the marker
+            } else {
+                Marker usersMarker = map.addMarker(new MarkerOptions()
+                        .position(new LatLng(p.getLat(), p.getLong()))
+                        .title("Name: "));
+                hm.put(p.getId(), usersMarker);
+            }
+        }
+
+        testLat = testLat + 0.001;
+        testLong = testLong - 0.001;
+
+        for(Person k : people){
+            k.setLat(testLat);
+            k.setLong(testLong);
         }
     }
 
