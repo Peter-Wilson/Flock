@@ -3,7 +3,9 @@ package brockbadgers.flock;
 import android.*;
 import android.Manifest;
 import android.app.Activity;
+
 import android.content.IntentSender;
+
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.Uri;
