@@ -94,8 +94,15 @@ public class LoginActivity extends AppCompatActivity {
                         HashMap<String, String> dbMap = (HashMap<String, String>) snapChild.getValue();
                         //DB Values.
                         Set<String> dbKey = dbMap.keySet();
-                        for (String dbFaceId : dbKey) {
-                            new VerificationTask(dbFaceId, currFaceId).execute();
+
+                        if (dbKey.size() > 1) {
+                            for (String dbFaceId : dbKey) {
+                                if (!dbFaceId.equals(currFaceId)) {
+                                    Log.d(TAG, dbFaceId);
+                                    Log.d(TAG, currFaceId);
+                                    new VerificationTask(dbFaceId, currFaceId).execute();
+                                }
+                            }
                         }
                     }
                 }
@@ -215,12 +222,6 @@ public class LoginActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Face[] faces) {
-
-            for (Face face : faces) {
-                Log.d(TAG, face.faceId.toString());
-            }
-
-
             String faceId = faces[0].faceId.toString();
             if (faceId != null) {
                 currFaceId = faceId;
