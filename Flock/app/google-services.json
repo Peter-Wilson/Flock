@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "400018582343",
+    "firebase_url": "https://flock-e3d5c.firebaseio.com",
+    "project_id": "flock-e3d5c",
+    "storage_bucket": "flock-e3d5c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:400018582343:android:1e8722f50a82aa72",
+        "android_client_info": {
+          "package_name": "com.flockapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "400018582343-ukbruko6iadn4isuapmvlagi97so8ub9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVyGSAoN-IxeLUeD8wpzWyR3vDFVI_QZU"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
