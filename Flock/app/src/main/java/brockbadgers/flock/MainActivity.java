@@ -16,6 +16,8 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -27,7 +29,13 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.FirebaseApp;
+import com.squareup.picasso.Picasso;
+
+import java.util.ArrayList;
+
+import classes.Person;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnInfoWindowClickListener , GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
@@ -111,12 +119,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.setMyLocationEnabled(true); //show the "current location" button in the top right
         map.setOnInfoWindowClickListener(this); //set on click callback for the info window
         map.clear(); //clear any markers currently on the map
+        map.setInfoWindowAdapter(new CustomInfoWindow()); //use the custom info window
 
         currentLoc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         //Starting location is the current location
         LatLng startingLatLng = new LatLng(currentLoc.getLatitude(), currentLoc.getLongitude());
-
-
 
         //Set up starting camera position
         CameraPosition startingPos = new CameraPosition.Builder()
@@ -124,6 +131,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .zoom(13)
                 .build();
         map.moveCamera(CameraUpdateFactory.newCameraPosition(startingPos));
+
+        addPeopleMarkersToMap();
+    }
+
+    public void addPeopleMarkersToMap(){
+
+        Person testPerson = new Person(43.476265, -80.542684);
+
+        ArrayList<Person> people = new ArrayList<>();
+
+        people.add(testPerson);
+
+
+        for(Person p:people){
+            LatLng loc;
+            loc = new LatLng(p.getLat(), p.getLong());
+            map.addMarker(new MarkerOptions()
+                    .position(loc)
+                    .title("Peter is lame"));
+        }
     }
 
     @Override
@@ -162,4 +189,68 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onInfoWindowClick(Marker marker) {
 
     }
+
+    /**
+     * The custom info window which displays info about the house
+     */
+    class CustomInfoWindow implements GoogleMap.InfoWindowAdapter{
+        boolean doneLoadingImage = false; //if the image has finished downloading
+        Marker m;
+
+        @Override
+        public View getInfoWindow(Marker marker) {
+            return null;
+        }
+
+        @Override
+        public View getInfoContents(Marker marker) {
+            //If a new marker has been selected, the image will not have been loaded
+            if(!marker.equals(m)){
+                doneLoadingImage = false;
+            }
+            m = marker;
+
+            //Inflate the layout and get the components
+            View v = getLayoutInflater().inflate(R.layout.custom_info_window, null);
+            ImageView infoImage = (ImageView)v.findViewById(R.id.infoImage);
+            TextView infoPrice = (TextView)v.findViewById(R.id.infoPrice);
+            TextView infoAddress = (TextView)v.findViewById(R.id.infoAddress);
+
+
+
+
+            //Set the two text fields on the info window
+            infoPrice.setText("Bum Bum");
+            infoAddress.setText("I will be back at 7PM!");
+
+            //Load the image with Picasso, using a generic house picture as a placeholder
+            //Picasso.with(getApplicationContext()).placeholder(getResources().getDrawable(R.drawable.ic_star_outline_black_24dp)).into(infoImage, this);
+
+            return v;
+        }
+
+        /**
+         * When Picasso returns with the valid image
+         */
+
+        public void onSuccess() {
+            //If the image is not already loaded, reopen the info window to show it
+            if(!doneLoadingImage){
+                Log.d("Picasso", "Image loaded");
+                doneLoadingImage = true;
+                m.showInfoWindow();
+            }
+        }
+
+        /**
+         * When Picasso can't find the image
+         */
+
+        public void onError() {
+            Log.e("Picasso", "Image load failed");
+            doneLoadingImage = true;
+        }
+    }
+
+
 }
