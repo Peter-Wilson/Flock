@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Flock</string>
     <string name="action_settings">Settings</string>
+
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="login_button">Login</string>
+    <string name="firebase_url">https://flock-d819c.firebaseio.com/</string>
 </resources>
