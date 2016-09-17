@@ -95,7 +95,6 @@ public class LoginActivity extends AppCompatActivity {
             /* Create an Intent that will start the Menu-Activity. */
             Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
             LoginActivity.this.startActivity(mainIntent);
-            LoginActivity.this.finish();
         }
     }
 
