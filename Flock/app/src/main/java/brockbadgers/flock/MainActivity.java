@@ -2,6 +2,7 @@ package brockbadgers.flock;
 
 import android.*;
 import android.Manifest;
+import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
@@ -98,6 +99,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         .setAction("Action", null).show();
             }
         });*/
+    }
+
+    public void onGroupAdd(){
+        //when someone tries to add someone to their group. . .
+        //This will pop up on their phone
+        CustomDialogClass cdd= new CustomDialogClass(this);
+        cdd.show();
+    }
+
+    public void Value(boolean returnVal)
+    {
+
     }
 
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
@@ -257,7 +270,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     /**
      * The custom info window which displays info about the house
      */
-    class CustomInfoWindow implements GoogleMap.InfoWindowAdapter{
+    class CustomInfoWindow extends Activity implements GoogleMap.InfoWindowAdapter{
         boolean doneLoadingImage = false; //if the image has finished downloading
         Marker m;
 
@@ -314,6 +327,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Log.e("Picasso", "Image load failed");
             doneLoadingImage = true;
         }
+
+
     }
 
 
