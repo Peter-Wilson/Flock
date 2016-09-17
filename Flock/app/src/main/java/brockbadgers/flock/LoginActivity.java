@@ -35,6 +35,8 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 
+import classes.Person;
+
 public class LoginActivity extends AppCompatActivity {
 
     final int LOAD_DELAY = 800;
@@ -88,24 +90,25 @@ public class LoginActivity extends AppCompatActivity {
 
         database = FirebaseDatabase.getInstance().getReference();
 
-        database.addValueEventListener(new ValueEventListener() {
+        database.child("users").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (currFaceId != null) {
                     for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
-                        HashMap<String, String> dbMap = (HashMap<String, String>) snapChild.getValue();
+                        //HashMap<String, String> dbMap = (HashMap<String, String>) snapChild.getValue();
                         //DB Values.
-                        Set<String> dbKey = dbMap.keySet();
+                        //Set<String> dbKey = dbMap.keySet();
 
-                        if (dbKey.size() > 1) {
-                            for (String dbFaceId : dbKey) {
-                                if (!dbFaceId.equals(currFaceId)) {
-                                    Log.d(TAG, dbFaceId);
+                        //if (dbKey.size() > 1) {
+                           // for (String dbFaceId : dbKey) {
+                                Person p = snapChild.getValue(Person.class);
+                                if (!p.getId().equals(currFaceId)) {
+                                    Log.d(TAG, p.getId());
                                     Log.d(TAG, currFaceId);
-                                    new VerificationTask(dbFaceId, currFaceId).execute();
+                                    new VerificationTask(p.getId(), currFaceId).execute();
                                 }
-                            }
-                        }
+                           // }
+                       // }
                     }
                 }
             }
@@ -227,7 +230,10 @@ public class LoginActivity extends AppCompatActivity {
             String faceId = faces[0].faceId.toString();
             if (faceId != null) {
                 currFaceId = faceId;
-                database.child("users").child(faceId).setValue(faceId);
+                Person p = new Person(43.471265, -80.542684);
+                p.setId(faceId);
+                p.setName("Test Person");
+                database.child("users").child(p.getId()).setValue(p);
             }
         }
     }

@@ -33,6 +33,11 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.FirebaseApp;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
@@ -54,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     double testLong = -80.542684;
     HashMap hm = new HashMap();
     ArrayList<Person> people;
+    DatabaseReference database;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +74,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .addApi(LocationServices.API)
                 .build();
         mGoogleApiClient.connect();
+
+        database = FirebaseDatabase.getInstance().getReference();
 
 
         //setContentView(R.layout.activity_main);
@@ -170,7 +178,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .build();
         map.moveCamera(CameraUpdateFactory.newCameraPosition(startingPos));
 
-        Person testPerson = new Person(testLat, testLong);
+       /* Person testPerson = new Person(testLat, testLong);
 
         people = new ArrayList<>();
         ArrayList<MarkerOptions> markersOfPeople = new ArrayList<>();
@@ -178,43 +186,49 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         people.add(testPerson);
 
         final Handler h = new Handler();
-        final int delay = 3 * 1000;
+        final int delay = 3 * 1000;*/
 
-        h.postDelayed(new Runnable(){
-            public void run(){
+        addPeopleMarkersToMap();
 
-                addPeopleMarkersToMap();
-
-                h.postDelayed(this, delay);
-            }
-        }, delay);
 
 
     }
 
     public void addPeopleMarkersToMap(){
-        
 
+        /*Person a = new Person(testLat,testLong);
+        a.setName("Riley");
+        a.setId("");
+        Person b = new Person(testLat + 0.001,testLong + 0.001);
+        b.setName("Peter");
+        b.setId(1);*/
 
-        for(Person p:people){
-            if (hm.containsKey(p.getId())) {
-                Marker marker = (Marker)hm.get(p.getId());
-                marker.setPosition(new LatLng(p.getLat(), p.getLong())); // Update the marker
-            } else {
-                Marker usersMarker = map.addMarker(new MarkerOptions()
-                        .position(new LatLng(p.getLat(), p.getLong()))
-                        .title("Name: "));
-                hm.put(p.getId(), usersMarker);
+       // database.child("users").child(a.getName()).setValue(a);
+       // database.child("users").child(b.getName()).setValue(b);
+
+        database.child("users").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                for (DataSnapshot postSnapshot: snapshot.getChildren()) {
+                    Person p = postSnapshot.getValue(Person.class);
+                    if (hm.containsKey(p.getId())) {
+                        Marker marker = (Marker)hm.get(p.getId());
+                        marker.setPosition(new LatLng(p.getLat(), p.getLong())); // Update the marker
+                    } else {
+                        Marker usersMarker = map.addMarker(new MarkerOptions()
+                                .position(new LatLng(p.getLat(), p.getLong()))
+                                .title("Name: " + p.getName()));
+                        hm.put(p.getId(), usersMarker);
+                    }
+                }
             }
-        }
 
-        testLat = testLat + 0.001;
-        testLong = testLong - 0.001;
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.d("Database cancel error :",databaseError.getMessage());
+            }
+        });
 
-        for(Person k : people){
-            k.setLat(testLat);
-            k.setLong(testLong);
-        }
     }
 
     @Override
@@ -236,6 +250,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         //If the map finished setting up before the connection was established, load the data now
         if(waitForConnect){
             waitForConnect = false;
+            setUpMap();
         }
     }
 
