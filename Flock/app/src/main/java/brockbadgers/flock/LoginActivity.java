@@ -39,6 +39,8 @@ public class LoginActivity extends AppCompatActivity {
         final Animation slideUp = AnimationUtils.loadAnimation(getBaseContext(), R.anim.slide_up_layout);
         loginPanel.startAnimation(slideUp);
 
+        reqCamPermissions();
+
         Button loginBtn = (Button)findViewById(R.id.login_button);
         loginBtn.setOnClickListener(
                 new View.OnClickListener() {
@@ -73,7 +75,7 @@ public class LoginActivity extends AppCompatActivity {
         switch(requestCode) {
             case 1:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    openCameraShowPreview();
+
                 } else {
                     //
                     Log.d(TAG, "DENIED");
