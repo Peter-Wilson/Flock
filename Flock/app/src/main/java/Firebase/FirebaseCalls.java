@@ -3,6 +3,7 @@ package Firebase;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.app.Activity;
+import android.app.DownloadManager;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -24,6 +25,12 @@ import java.util.Scanner;
 import brockbadgers.flock.GroupRequest;
 import brockbadgers.flock.LoginActivity;
 import brockbadgers.flock.R;
+import okhttp3.Headers;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 /**
  * Created by Peter on 9/17/2016.
@@ -32,68 +39,50 @@ public class FirebaseCalls {
 
     static final String TAG = FirebaseCalls.class.getCanonicalName();
 
-    // This snippet takes the simple approach of using the first returned Google account,
-// but you can pick any Google account on the device.
-    public static String getAccount(Context ctx) {
-        Account[] accounts = AccountManager.get(ctx).
-                getAccountsByType("com.google");
-        if (accounts.length == 0) {
-            return null;
-        }
-        return accounts[0].name;
-    }
-
 
     //Add Notification Key
-    public static String addtNotificationKey(String leaderName, String[] registrationId, Context ctx)
+    public String addtNotificationKey(String leaderName, String[] registrationId, Context ctx)
             throws IOException, JSONException {
 
-        String accountName = getAccount(ctx);
-
-        // Initialize the scope using the client ID you got from the Console.
-        final String scope = "audience:server:client_id:"
-                + "1262xxx48712-9qs6n32447mcj9dirtnkyrejt82saa52.apps.googleusercontent.com";
-        String idToken = null;
-        try {
-            idToken = GoogleAuthUtil.getToken(ctx, accountName, scope);
-        } catch (Exception e) {
-            Log.d("A","exception while getting idToken: " + e);
-        }
-
         URL url = new URL("https://fcm.googleapis.com/fcm/send");
-        HttpURLConnection con = (HttpURLConnection) url.openConnection();
-        con.setDoOutput(true);
-
-        // HTTP request header
-        con.setRequestProperty("Authorization", "key = AIzaSyD31ROe_ALwLl4h7xrDhZ6UtV3QegtLx1U");
-        con.setRequestProperty("Content-Type", "application/json");
-        con.setRequestProperty("project_id", "702826245822");
-        con.connect();
 
 
-        // HTTP request
-        JSONObject data = new JSONObject();
-        data.put("operation", "create");
-        data.put("notification_key_name", leaderName);
-        data.put("registration_ids", registrationId);
+        JSONObject json = new JSONObject();
+        json.put("operation","create");
+        json.put("registration_ids", new JSONArray(registrationId));
+        json.put("notification_key_name", "peterWilson");
 
-        OutputStream os = con.getOutputStream();
-        os.write(data.toString().getBytes("UTF-8"));
-        os.close();
 
-        int status = con.getResponseCode();
-        Log.e("google link", con.getErrorStream().toString());
-
-        // Read the response into a string
-        InputStream is = con.getInputStream();
-        String responseString = new Scanner(is, "UTF-8").useDelimiter("\\A").next();
-        is.close();
-
-        // Parse the JSON string and return the notification key
+        String responseString = post(url.toString(), json.toString());
         JSONObject response = new JSONObject(responseString);
+        Log.d(TAG,responseString);
         return response.getString("notification_key");
     }
 
+    public static final MediaType JSON
+            = MediaType.parse("application/json; charset=utf-8");
+
+    OkHttpClient client = new OkHttpClient();
+
+    Headers buildHeaders()
+    {
+        return new Headers.Builder()
+                .add("Authorization","key=AIzaSyCSt1P5ckEfVNG1ikLR78lR4MfvabJvfYo")
+                .add("Content-Type","application/json")
+                .add("project_id","flock-b958e")
+                .build();
+    }
+
+    String post(String url, String json) throws IOException {
+        RequestBody body = RequestBody.create(JSON, json);
+        Request request = new Request.Builder()
+                .url(url)
+                .headers(buildHeaders())
+                .post(body)
+                .build();
+        Response response = client.newCall(request).execute();
+        return response.body().string();
+    }
 
 
     //Add Users to the group
