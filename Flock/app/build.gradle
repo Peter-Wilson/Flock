@@ -37,9 +37,7 @@ dependencies {
     compile 'com.google.firebase:firebase-messaging:9.4.0'
     compile 'com.squareup.okhttp3:okhttp:3.4.1'
 
+    apply plugin: 'com.google.gms.google-services'
+
+
 }
-
-apply plugin: 'com.google.gms.google-services'
-
-
-

@@ -2,13 +2,17 @@ package brockbadgers.flock.Dialog;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 
 import brockbadgers.flock.MainActivity;
 import brockbadgers.flock.R;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 /**
  * Created by onyiny-ang on 17/09/16.
@@ -18,17 +22,19 @@ public class CustomDialogClass extends Dialog implements android.view.View.OnCli
     public MainActivity c;
     public Dialog d;
     public Button yes, no;
+    DatabaseReference database;
 
     public CustomDialogClass(Activity a) {
         super(a);
         // TODO Auto-generated constructor stub
         this.c = (MainActivity)a;
+        database = FirebaseDatabase.getInstance().getReference();
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        //requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.custom_dialog);
         yes = (Button) findViewById(R.id.btn_yes);
         no = (Button) findViewById(R.id.btn_no);
@@ -39,12 +45,16 @@ public class CustomDialogClass extends Dialog implements android.view.View.OnCli
 
     @Override
     public void onClick(View v) {
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(c);
+        String userId = sharedPref.getString(c.getString(R.string.user_id), null);
         switch (v.getId()) {
             case R.id.btn_yes:
+                database.child("users").child(userId).child("accepted").setValue(1);
                 c.Value(true);
-                c.finish();
+                dismiss();
                 break;
             case R.id.btn_no:
+                database.child("users").child(userId).child("group").setValue(0);
                 c.Value(false);
                 dismiss();
                 break;

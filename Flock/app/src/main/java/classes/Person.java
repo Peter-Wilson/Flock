@@ -11,6 +11,7 @@ public class Person {
     private String id;
     private int colour;
     private int group;
+    private boolean accepted;
 
     public Person(){};
 
@@ -18,6 +19,8 @@ public class Person {
 
         this.person_lat = _lat;
         this.person_long = _long;
+        this.accepted = false;
+        this.group = 0;
 
     }
 
@@ -67,5 +70,13 @@ public class Person {
 
     public void setColour(int colour) {
         this.colour = colour;
+    }
+
+    public boolean getAccepted(){
+        return this.accepted;
+    }
+
+    public void setAccepted(boolean didAccepted){
+        this.accepted = didAccepted;
     }
 }

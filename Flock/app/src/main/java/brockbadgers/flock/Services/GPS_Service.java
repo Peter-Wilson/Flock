@@ -28,6 +28,7 @@ public class GPS_Service extends Service {
 
     private LocationListener listener;
     private LocationManager locationManager;
+    DatabaseReference database;
 
     @Nullable
     @Override
@@ -37,16 +38,20 @@ public class GPS_Service extends Service {
 
     @Override
     public void onCreate(){
+        database = FirebaseDatabase.getInstance().getReference();
         listener = new LocationListener(){
             @Override
             public void onLocationChanged(Location location){
                 //Publish to the DB
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                 String ref = sharedPref.getString(getString(R.string.user_id), null);
-                Person person = new Person(location.getLatitude(), location.getLongitude());
+
+                database.child("users").child(ref).child("lat").setValue(location.getLatitude());
+                database.child("users").child(ref).child("long").setValue(location.getLongitude());
+                /*Person person = new Person(location.getLatitude(), location.getLongitude());
                 person.setId(ref);
                 DatabaseReference database = FirebaseDatabase.getInstance().getReference();
-                database.child("users").child(person.getId()).setValue(person);
+                database.child("users").child(person.getId()).setValue(person);*/
                 Log.d("Long", ""+location.getLongitude());
                 Log.d("Lat", ""+location.getLatitude());
             }
