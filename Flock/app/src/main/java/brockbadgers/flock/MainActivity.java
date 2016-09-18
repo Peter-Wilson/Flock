@@ -6,11 +6,13 @@ import android.app.Activity;
 
 import android.content.IntentSender;
 
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -80,8 +82,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        FirebaseApp app = FirebaseApp.getInstance();
+        database = FirebaseDatabase.getInstance().getReference();
         setContentView(R.layout.activity_map);
+
+
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean isActivated = sharedPref.getBoolean("isActivated",false);
+
+
 
         //Set up google api client
         if (mGoogleApiClient == null) {
@@ -137,7 +145,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        database = FirebaseDatabase.getInstance().getReference();
+
 
 
         //setContentView(R.layout.activity_main);
@@ -156,16 +164,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
-       /* FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
 
->>>>>>> e4806b890255b77f8bcc38a360c00d49e4aca1d2
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+
             }
-        });*/
+        });
     }
 
     public void onGroupAdd(){

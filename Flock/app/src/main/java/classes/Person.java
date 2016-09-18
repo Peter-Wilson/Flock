@@ -9,6 +9,7 @@ public class Person {
     private double person_long; //Longitude of house
     private String person_name;
     private String id;
+    private int group;
 
     public Person(){};
 
@@ -49,5 +50,13 @@ public class Person {
 
     public void setId(String newId){
         this.id = newId;
+    }
+
+    public void setGroup(int newGroup){
+        this.group = newGroup;
+    }
+
+    public int getGroup(){
+        return this.group;
     }
 }

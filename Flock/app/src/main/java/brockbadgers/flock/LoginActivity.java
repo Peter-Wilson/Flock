@@ -1,10 +1,13 @@
 package brockbadgers.flock;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -51,74 +54,77 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
 
-        final ImageView login = (ImageView)findViewById(R.id.no_login);
-        final LinearLayout loginPanel = (LinearLayout) findViewById(R.id.login_panel);
 
-        final Animation fadeIn = AnimationUtils.loadAnimation(getBaseContext(), R.anim.fade_in);
-        login.startAnimation(fadeIn);
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean isActivated = sharedPref.getBoolean("isActivated",false);
 
-        final Animation slideUp = AnimationUtils.loadAnimation(getBaseContext(), R.anim.slide_up_layout);
-        loginPanel.startAnimation(slideUp);
+        if(isActivated) {
+            Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
+            LoginActivity.this.startActivity(mainIntent);
+        }else {
 
-        reqCamPermissions();
+            setContentView(R.layout.activity_login);
 
-        Button loginBtn = (Button)findViewById(R.id.login_button);
-        loginBtn.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        final Animation zoomin = AnimationUtils.loadAnimation(getBaseContext(), R.anim.zoom_in);
-                        login.startAnimation(zoomin);
 
-                        final Animation slideDown = AnimationUtils.loadAnimation(getBaseContext(), R.anim.slide_down_layout);
-                        loginPanel.startAnimation(slideDown);
+            final ImageView login = (ImageView) findViewById(R.id.no_login);
+            final LinearLayout loginPanel = (LinearLayout) findViewById(R.id.login_panel);
 
-                        //delay the new page change
-                        new Handler().postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                openCameraShowPreview();
-                            }
-                        }, LOAD_DELAY);
-                    }
-                }
-        );
+            final Animation fadeIn = AnimationUtils.loadAnimation(getBaseContext(), R.anim.fade_in);
+            login.startAnimation(fadeIn);
 
-        sFaceServiceClient = new FaceServiceRestClient("6cbf242786b143e8b3b1eadf70e80b68");
+            final Animation slideUp = AnimationUtils.loadAnimation(getBaseContext(), R.anim.slide_up_layout);
+            loginPanel.startAnimation(slideUp);
 
-        database = FirebaseDatabase.getInstance().getReference();
+            reqCamPermissions();
 
-        database.child("users").addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (currFaceId != null) {
-                    for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
-                        //HashMap<String, String> dbMap = (HashMap<String, String>) snapChild.getValue();
-                        //DB Values.
-                        //Set<String> dbKey = dbMap.keySet();
+            Button loginBtn = (Button) findViewById(R.id.login_button);
+            loginBtn.setOnClickListener(
+                    new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            final Animation zoomin = AnimationUtils.loadAnimation(getBaseContext(), R.anim.zoom_in);
+                            login.startAnimation(zoomin);
 
-                        //if (dbKey.size() > 1) {
-                           // for (String dbFaceId : dbKey) {
-                                Person p = snapChild.getValue(Person.class);
-                                if (!p.getId().equals(currFaceId)) {
-                                    Log.d(TAG, p.getId());
-                                    Log.d(TAG, currFaceId);
-                                    new VerificationTask(p.getId(), currFaceId).execute();
+                            final Animation slideDown = AnimationUtils.loadAnimation(getBaseContext(), R.anim.slide_down_layout);
+                            loginPanel.startAnimation(slideDown);
+
+                            //delay the new page change
+                            new Handler().postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    openCameraShowPreview();
                                 }
-                           // }
-                       // }
+                            }, LOAD_DELAY);
+                        }
+                    }
+            );
+
+            sFaceServiceClient = new FaceServiceRestClient("6cbf242786b143e8b3b1eadf70e80b68");
+
+            database = FirebaseDatabase.getInstance().getReference();
+
+            database.child("users").addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    if (currFaceId != null) {
+                        for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
+                            Person p = snapChild.getValue(Person.class);
+                            if (!p.getId().equals(currFaceId)) {
+                                Log.d(TAG, p.getId());
+                                Log.d(TAG, currFaceId);
+                                new VerificationTask(p.getId(), currFaceId).execute();
+                            }
+                        }
                     }
                 }
-            }
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.d(TAG, "SOMETHING BAD HAPPENED WHEN A VALUE CHANGED: " + databaseError.getMessage());
-            }
-        });
-
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+                    Log.d(TAG, "SOMETHING BAD HAPPENED WHEN A VALUE CHANGED: " + databaseError.getMessage());
+                }
+            });
+        }
 
     }
 
@@ -234,6 +240,10 @@ public class LoginActivity extends AppCompatActivity {
                 p.setId(faceId);
                 p.setName("Test Person");
                 database.child("users").child(p.getId()).setValue(p);
+                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                SharedPreferences.Editor editor =sharedPref.edit();
+                editor.putBoolean("isActivated",true);
+                editor.commit();
             }
         }
     }
