@@ -40,8 +40,8 @@
             android:layout_width="100dp"
             android:layout_height="30dp"
             android:layout_marginLeft="50dp"
-            android:background="@android:color/white"
             android:clickable="true"
+            android:background="@android:color/white"
             android:text="No"
             android:textColor="#5DBCD2"
             android:textStyle="bold" />

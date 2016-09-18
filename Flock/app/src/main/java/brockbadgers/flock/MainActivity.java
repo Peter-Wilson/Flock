@@ -709,7 +709,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         protected void onPostExecute(VerifyResult verifyResult) {
             Log.d("We are verifying","Now");
             if (verifyResult.isIdentical) {
-                //matchedFaceIdList.add(mFaceId1.toString());
+
             }
         }
     }
