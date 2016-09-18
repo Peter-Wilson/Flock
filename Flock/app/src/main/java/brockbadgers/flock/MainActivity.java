@@ -367,7 +367,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void addPeopleMarkersToMap(){
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        String userId = sharedPref.getString(getString(R.string.user_id), null);
+        final String userId = sharedPref.getString(getString(R.string.user_id), null);
 
         database.child("users").child(userId).addChildEventListener(new ChildEventListener() {
 
@@ -409,14 +409,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onDataChange(DataSnapshot snapshot) {
                 for (DataSnapshot postSnapshot : snapshot.getChildren()) {
                     Person p = postSnapshot.getValue(Person.class);
-                    if (hm.containsKey(p.getId())) {
-                        Marker marker = (Marker) hm.get(p.getId());
-                        marker.setPosition(new LatLng(p.getLat(), p.getLong())); // Update the marker
-                    } else {
-                        Marker usersMarker = map.addMarker(new MarkerOptions()
-                                .position(new LatLng(p.getLat(), p.getLong()))
-                                .title("Name: " + p.getName()));
-                        hm.put(p.getId(), usersMarker);
+                    if(!p.getId().equals(userId)) {
+                        if (hm.containsKey(p.getId())) {
+                            Marker marker = (Marker) hm.get(p.getId());
+                            marker.setPosition(new LatLng(p.getLat(), p.getLong())); // Update the marker
+                        } else {
+                            Marker usersMarker = map.addMarker(new MarkerOptions()
+                                    .position(new LatLng(p.getLat(), p.getLong()))
+                                    .title("Name: " + p.getName()));
+                            hm.put(p.getId(), usersMarker);
+                        }
                     }
                 }
             }
