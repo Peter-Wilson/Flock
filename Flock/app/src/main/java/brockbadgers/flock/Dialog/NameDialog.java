@@ -2,24 +2,32 @@ package brockbadgers.flock.Dialog;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import brockbadgers.flock.R;
 
 public class NameDialog extends Dialog {
 
     Activity a;
+    int colour = 0;
 
     public NameDialog(Activity activity) {
         super(activity);
@@ -38,7 +46,18 @@ public class NameDialog extends Dialog {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        ChangeColor(v);
+                        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(a.getApplicationContext());
+                        String ref = sharedPref.getString(a.getString(R.string.user_id), null);
+                        DatabaseReference database = FirebaseDatabase.getInstance().getReference();
+                        String name = ((EditText)a.findViewById(R.id.Name)).getText().toString();
+                        database.child("users").child(ref).child("name").setValue(name);
+                        database.child("users").child(ref).child("colour").setValue(colour);
+
+
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.putString(a.getString(R.string.name), name);
+                        editor.putInt(a.getString(R.string.colour), colour);
+                        editor.commit();
                     }
                 }
         );
@@ -49,6 +68,7 @@ public class NameDialog extends Dialog {
                     @Override
                     public void onClick(View v) {
                         ChangeColor(v);
+                        colour = 0;
                     }
                 }
         );
@@ -59,6 +79,7 @@ public class NameDialog extends Dialog {
                     @Override
                     public void onClick(View v) {
                         ChangeColor(v);
+                        colour = 1;
                     }
                 }
         );
@@ -69,6 +90,7 @@ public class NameDialog extends Dialog {
                     @Override
                     public void onClick(View v) {
                         ChangeColor(v);
+                        colour = 2;
                     }
                 }
         );
@@ -79,6 +101,7 @@ public class NameDialog extends Dialog {
                     @Override
                     public void onClick(View v) {
                         ChangeColor(v);
+                        colour = 3;
                     }
                 }
         );
@@ -89,6 +112,7 @@ public class NameDialog extends Dialog {
                     @Override
                     public void onClick(View v) {
                         ChangeColor(v);
+                        colour = 4;
                     }
                 }
         );
@@ -99,6 +123,7 @@ public class NameDialog extends Dialog {
                     @Override
                     public void onClick(View v) {
                         ChangeColor(v);
+                        colour = 5;
                     }
                 }
         );

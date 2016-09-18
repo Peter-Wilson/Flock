@@ -11,4 +11,6 @@
     <string name="title_activity_date_time_dialog">DateTimeDialog</string>
     <string name="hour_duration">duration</string>
     <string name="title_activity_name_dialog">NameDialog</string>
+    <string name="name">name</string>
+    <string name="colour">colour</string>
 </resources>
