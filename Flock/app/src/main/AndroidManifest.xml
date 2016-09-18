@@ -60,7 +60,7 @@
         <service android:name=".Services.GPS_Service" />
 
         <activity
-            android:name=".DateTimeDialog"
+            android:name=".DurationDialog"
             android:label="@string/title_activity_date_time_dialog"
             android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>

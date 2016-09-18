@@ -179,6 +179,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             }
         });*/
+        if(runtime_permission())
+            startGPS();
     }
 
     public void onGroupAdd(){
@@ -202,9 +204,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
 
-
-        if(runtime_permission())
-            startGPS();
 
     }
 
@@ -316,6 +315,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public void LaunchDurationPicker()
+    {
+        DurationDialog howLong = new DurationDialog(this);
+        howLong.show();
     }
 
 

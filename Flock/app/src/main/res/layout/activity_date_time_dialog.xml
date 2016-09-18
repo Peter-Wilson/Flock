@@ -6,12 +6,28 @@
     android:layout_height="match_parent"
     android:gravity="center"
     android:fitsSystemWindows="true"
-    android:orientation="horizontal"
-    tools:context="brockbadgers.flock.DateTimeDialog">
-
-    <DatePicker
+    android:orientation="vertical"
+    tools:context=".DurationDialog"
+    android:weightSum="1">
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/datePicker"
-        android:layout_gravity="center_vertical" />
+        android:textSize="30dp"
+        android:width="250dp"
+        android:gravity="center"
+        android:text="How Many Hours Should The Tracking Occur?"/>
+
+    <NumberPicker
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/numberPicker"
+        android:layout_gravity="center_horizontal"
+        android:layout_weight="0.12"
+        style="@style/Base.TextAppearance.AppCompat.Large"
+        android:theme="@style/Base.Theme.AppCompat.Light" />
+    <Button
+        android:layout_width="250dp"
+        android:id="@+id/submitTime"
+        android:layout_height="wrap_content"
+        android:text="Confirm" />
 </LinearLayout>

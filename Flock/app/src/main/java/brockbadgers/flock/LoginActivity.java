@@ -94,6 +94,7 @@ public class LoginActivity extends AppCompatActivity {
                                 @Override
                                 public void run() {
                                     openCameraShowPreview();
+                                    finish();
                                 }
                             }, LOAD_DELAY);
                         }
