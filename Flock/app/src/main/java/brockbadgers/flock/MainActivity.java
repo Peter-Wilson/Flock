@@ -38,6 +38,7 @@ import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import brockbadgers.flock.Helpers.MSFaceServiceClient;
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.ConnectionResult;
@@ -66,12 +67,15 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.microsoft.projectoxford.face.FaceServiceClient;
+import com.microsoft.projectoxford.face.contract.Face;
+import com.microsoft.projectoxford.face.contract.VerifyResult;
 import com.squareup.picasso.Picasso;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.util.*;
 
 import classes.Person;
 
@@ -85,6 +89,7 @@ import brockbadgers.flock.Services.GPS_Service;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnInfoWindowClickListener , GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
+    private static final String TAG = MainActivity.class.getCanonicalName();
     GoogleMap map; //the map shown in the map fragment
     GoogleApiClient mGoogleApiClient; //google api client for location services
     protected static final int REQUEST_CHECK_SETTINGS = 0x1;
@@ -96,11 +101,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     HashMap hm = new HashMap();
     ArrayList<Person> people;
     DatabaseReference database;
+    VerifyResult v;
+    boolean done = false;
+
+
+    ArrayList<String> matchedFaceIdList;
+    ArrayList<String> kindaMatchedFaceIdList;
+    ArrayList<Double> notMatched;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         database = FirebaseDatabase.getInstance().getReference();
+        matchedFaceIdList = new ArrayList<>();
+        kindaMatchedFaceIdList = new ArrayList<>();
+        notMatched = new ArrayList<>();
         if(!runtime_permission()){
             startGPS();
         }
@@ -175,14 +190,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             ((MapFragment) getFragmentManager().findFragmentById(R.id.mapFrag)).getMapAsync(this);
         }
 
-        /*FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                openCameraShowPreview();
             }
-        });*/
+        });
     }
 
     public void onGroupAdd(){
@@ -205,8 +220,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } catch (Exception e) {
             Log.e("Exception: ", "" + e);
         }
-
-
 
 
 
@@ -300,6 +313,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
+    //AFTER the user has taken a pick....
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+            Bundle extras = data.getExtras();
+            //Get the image.
+            Bitmap mBitmap = (Bitmap) extras.get("data");
+
+
+            //TODO: Open peters date time class.
+//            Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
+//            MainActivity.this.startActivity(mainIntent);
+
+            detect(mBitmap);
+        }
+    }
+
+    private void detect(Bitmap bitmap) {
+        // Put the image into an input stream for detection.
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
+
+        // Start a background task to detect faces in the image.
+        new DetectionTask().execute(inputStream);
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -352,15 +392,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .build();
         map.moveCamera(CameraUpdateFactory.newCameraPosition(startingPos));
 
-       /* Person testPerson = new Person(testLat, testLong);
 
-        people = new ArrayList<>();
-        ArrayList<MarkerOptions> markersOfPeople = new ArrayList<>();
-
-        people.add(testPerson);
-
-        final Handler h = new Handler();
-        final int delay = 3 * 1000;*/
 
         addPeopleMarkersToMap();
 
@@ -371,7 +403,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void addPeopleMarkersToMap(){
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        final String userId = sharedPref.getString(getString(R.string.user_id), null);
+        String userId = sharedPref.getString(getString(R.string.user_id), null);
 
         database.child("users").child(userId).addChildEventListener(new ChildEventListener() {
 
@@ -382,7 +414,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                if(done){
+                    for(String faceId : matchedFaceIdList){
+                        database.child("users").child(faceId).child("group");
+                    }
 
+                }
                if(dataSnapshot.getKey().equals("group")){
                    Long value = (Long) dataSnapshot.getValue();
                    if(value != 0){
@@ -408,12 +445,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+
+
         database.child("users").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
+                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.super.getApplicationContext());
+                String userId = sharedPref.getString(getString(R.string.user_id), null);
+                int myGroup = sharedPref.getInt("myGroup",-1);
                 for (DataSnapshot postSnapshot : snapshot.getChildren()) {
                     Person p = postSnapshot.getValue(Person.class);
-                    if(!p.getId().equals(userId)) {
+                    if(!p.getId().equals(userId) && p.getGroup() == 1) {
                         if (hm.containsKey(p.getId())) {
                             Marker marker = (Marker) hm.get(p.getId());
                             marker.setPosition(new LatLng(p.getLat(), p.getLong())); // Update the marker
@@ -580,7 +622,102 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
+    private class DetectionTask extends AsyncTask<InputStream, String, Face[]> {
+        @Override
+        protected Face[] doInBackground(InputStream... params) {
+            // Get an instance of face service client to detect faces in image.
+            FaceServiceClient faceServiceClient = MSFaceServiceClient.getMSServiceClientInstance();
+            try {
+                // Start detection.
+                return faceServiceClient.detect(
+                        params[0],  /* Input stream of image to detect */
+                        true,       /* Whether to return face ID */
+                        false,       /* Whether to return face landmarks */
+                        null);
+            }  catch (Exception e) {
+                Log.d("Fahad is poo",e.getMessage());
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(final Face[] faces) {
+            database.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        for (Face face : faces) {
+                            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                            String ref = sharedPref.getString(getString(R.string.user_id), null);
+
+                            for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
+                                HashMap<String, String> dbMap = (HashMap<String, String>) snapChild.getValue();
+                                //DB Values.
+                                Set<String> dbKey = dbMap.keySet();
+                                for (String dbFaceId : dbKey) {
+                                    if (!face.faceId.toString().equals(ref)) {
+                                        new VerificationTask(face.faceId.toString(), dbFaceId).execute();
+                                    }
+                                }
+                            }
+                        }
+
+                        done = true;
+
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+            });
+        }
+    }
+
+
+    private class VerificationTask extends AsyncTask<Void, String, VerifyResult> {
+        private final String TAG = VerificationTask.class.getCanonicalName();
+        private UUID mFaceId0;
+        private UUID mFaceId1;
+
+        public VerificationTask(String mFaceId0, String mFaceId1) {
+            this.mFaceId0 = UUID.fromString(mFaceId0);
+            this.mFaceId1 = UUID.fromString(mFaceId1);
+        }
+
+        @Override
+        protected VerifyResult doInBackground(Void... voids) {
+            try {
+                v =  MSFaceServiceClient.getMSServiceClientInstance().verify(mFaceId0, mFaceId1);
+                if(v.confidence > 0.5 || v.isIdentical) {
+                    matchedFaceIdList.add(mFaceId1.toString());
+                }
+                return v;
+            } catch (Exception e) {
+
+                String error = e.getMessage();
+                Log.e(TAG, "" + e);
+                return null;
+            }
+        }
+
+        @Override
+        protected void onCancelled() {
+            Log.d(TAG, "VERIFY RESULT WAS CANCELLED");
+        }
+
+        @Override
+        protected void onPostExecute(VerifyResult verifyResult) {
+            Log.d("We are verifying","Now");
+            if (verifyResult.isIdentical) {
+                //matchedFaceIdList.add(mFaceId1.toString());
+            }
+        }
+    }
+
+
+
 }
+
 
 class NotificationKeyTask extends AsyncTask<GroupRequest, Void, String> {
 
