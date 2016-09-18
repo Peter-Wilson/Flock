@@ -69,11 +69,6 @@ public class LoginActivity extends AppCompatActivity {
         }else {
 
             setContentView(R.layout.activity_login);
-            NameDialog name = new NameDialog(this);
-           // name.requestWindowFeature(Window.FEATURE_NO_TITLE);
-           // name.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
-            //name.setContentView(R.layout.activity_name_dialog);
-            name.show();
 
 
             final ImageView login = (ImageView) findViewById(R.id.no_login);
@@ -103,7 +98,6 @@ public class LoginActivity extends AppCompatActivity {
                                 @Override
                                 public void run() {
                                     openCameraShowPreview();
-                                    finish();
                                 }
                             }, LOAD_DELAY);
                         }
@@ -181,6 +175,7 @@ public class LoginActivity extends AppCompatActivity {
             Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
             LoginActivity.this.startActivity(mainIntent);
 
+           //finish();
             detect(mBitmap);
         }
     }

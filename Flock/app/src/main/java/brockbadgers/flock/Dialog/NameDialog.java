@@ -58,6 +58,7 @@ public class NameDialog extends Dialog {
                         editor.putString(a.getString(R.string.name), name);
                         editor.putInt(a.getString(R.string.colour), colour);
                         editor.commit();
+                        hide();
                     }
                 }
         );

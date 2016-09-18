@@ -26,6 +26,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -66,6 +67,7 @@ import java.util.TimerTask;
 
 import brockbadgers.flock.Dialog.CustomDialogClass;
 import brockbadgers.flock.Dialog.DurationDialog;
+import brockbadgers.flock.Dialog.NameDialog;
 import classes.Person;
 
 import com.google.android.gms.common.GooglePlayServicesUtil;
@@ -95,6 +97,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         database = FirebaseDatabase.getInstance().getReference();
         if(!runtime_permission()){
             startGPS();
+        }
+
+       SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+       if(sharedPref.getString(getString(R.string.name), null) == null &&
+               (sharedPref.getString(getString(R.string.colour), null) == null))
+        {
+            NameDialog name = new NameDialog(this);
+            name.show();
         }
 
         setContentView(R.layout.activity_map);
@@ -423,12 +433,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             Marker marker = (Marker) hm.get(p.getId());
                             marker = map.addMarker(new MarkerOptions()
                                     .position(new LatLng(p.getLat(), p.getLong()))
-                                    .icon(BitmapDescriptorFactory.defaultMarker(colours[new Random().nextInt(colours.length)])));
+                                    .icon(BitmapDescriptorFactory.defaultMarker(colours[p.getColour()])));
                         } else {
                             Marker usersMarker = map.addMarker(new MarkerOptions()
                                     .position(new LatLng(p.getLat(), p.getLong()))
                                     .title("Name: " + p.getName())
-                                    .icon(BitmapDescriptorFactory.defaultMarker(colours[new Random().nextInt(colours.length)])));
+                                    .icon(BitmapDescriptorFactory.defaultMarker(colours[p.getColour()])));
                             hm.put(p.getId(), usersMarker);
                         }
                     }
