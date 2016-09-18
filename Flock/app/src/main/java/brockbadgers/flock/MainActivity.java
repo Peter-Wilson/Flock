@@ -35,8 +35,10 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import brockbadgers.flock.Helpers.MSFaceServiceClient;
 import com.google.android.gms.appindexing.Action;
@@ -103,6 +105,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     DatabaseReference database;
     VerifyResult v;
     boolean done = false;
+    boolean tookPicture = false;
+    boolean foundFaces = false;
 
 
     ArrayList<String> matchedFaceIdList;
@@ -336,6 +340,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
         ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
 
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        String userId = sharedPref.getString(getString(R.string.user_id), null);
+        database.child("users").child(userId).child("accepted").setValue(true);
+        tookPicture = true;
+
+
         // Start a background task to detect faces in the image.
         new DetectionTask().execute(inputStream);
     }
@@ -379,7 +389,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.setMyLocationEnabled(true); //show the "current location" button in the top right
         map.setOnInfoWindowClickListener(this); //set on click callback for the info window
         map.clear(); //clear any markers currently on the map
-        map.setInfoWindowAdapter(new CustomInfoWindow()); //use the custom info window
 
         currentLoc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         //Starting location is the current location
@@ -403,7 +412,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void addPeopleMarkersToMap(){
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        String userId = sharedPref.getString(getString(R.string.user_id), null);
+       final  String userId = sharedPref.getString(getString(R.string.user_id), null);
 
         database.child("users").child(userId).addChildEventListener(new ChildEventListener() {
 
@@ -416,13 +425,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
                 if(done){
                     for(String faceId : matchedFaceIdList){
-                        database.child("users").child(faceId).child("group");
+                        database.child("users").child(faceId).child("group").setValue(1);
                     }
-
                 }
+
+
                if(dataSnapshot.getKey().equals("group")){
                    Long value = (Long) dataSnapshot.getValue();
-                   if(value != 0){
+                   if(value != 0 && !tookPicture ){
                        onGroupAdd();
                    }
                }
@@ -462,7 +472,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         } else {
                             Marker usersMarker = map.addMarker(new MarkerOptions()
                                     .position(new LatLng(p.getLat(), p.getLong()))
-                                    .title("Name: " + p.getName()));
+                                    .title(p.getName()));
                             hm.put(p.getId(), usersMarker);
                         }
                     }
@@ -560,66 +570,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     /**
      * The custom info window which displays info about the house
      */
-    class CustomInfoWindow extends Activity implements GoogleMap.InfoWindowAdapter{
-        boolean doneLoadingImage = false; //if the image has finished downloading
-        Marker m;
-
-        @Override
-        public View getInfoWindow(Marker marker) {
-            return null;
-        }
-
-        @Override
-        public View getInfoContents(Marker marker) {
-            //If a new marker has been selected, the image will not have been loaded
-            if(!marker.equals(m)){
-                doneLoadingImage = false;
-            }
-            m = marker;
-
-            //Inflate the layout and get the components
-            View v = getLayoutInflater().inflate(R.layout.custom_info_window, null);
-            ImageView infoImage = (ImageView)v.findViewById(R.id.infoImage);
-            TextView infoPrice = (TextView)v.findViewById(R.id.infoPrice);
-            TextView infoAddress = (TextView)v.findViewById(R.id.infoAddress);
-
-
-
-
-            //Set the two text fields on the info window
-            infoPrice.setText("Bum Bum");
-            infoAddress.setText("I will be back at 7PM!");
-
-            //Load the image with Picasso, using a generic house picture as a placeholder
-            //Picasso.with(getApplicationContext()).placeholder(getResources().getDrawable(R.drawable.ic_star_outline_black_24dp)).into(infoImage, this);
-
-            return v;
-        }
-
-        /**
-         * When Picasso returns with the valid image
-         */
-
-        public void onSuccess() {
-            //If the image is not already loaded, reopen the info window to show it
-            if(!doneLoadingImage){
-                Log.d("Picasso", "Image loaded");
-                doneLoadingImage = true;
-                m.showInfoWindow();
-            }
-        }
-
-        /**
-         * When Picasso can't find the image
-         */
-
-        public void onError() {
-            Log.e("Picasso", "Image load failed");
-            doneLoadingImage = true;
-        }
-
-
-    }
 
 
     private class DetectionTask extends AsyncTask<InputStream, String, Face[]> {
@@ -635,7 +585,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         false,       /* Whether to return face landmarks */
                         null);
             }  catch (Exception e) {
-                Log.d("Fahad is poo",e.getMessage());
                 return null;
             }
         }
@@ -646,6 +595,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         for (Face face : faces) {
+                            foundFaces = true;
                             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                             String ref = sharedPref.getString(getString(R.string.user_id), null);
 
@@ -662,6 +612,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         }
 
                         done = true;
+                        if(matchedFaceIdList.isEmpty()){
+                            if(foundFaces == false){
+                                Toast.makeText(getApplicationContext(),"No faces found.", Toast.LENGTH_LONG).show();
+                            }else {
+                                Toast.makeText(getApplicationContext(), "No results found, please make an account! It's pretty easy", Toast.LENGTH_LONG).show();
+                                foundFaces = false;
+                            }
+                        }
 
                     }
 
@@ -670,6 +628,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                     }
             });
+
         }
     }
 

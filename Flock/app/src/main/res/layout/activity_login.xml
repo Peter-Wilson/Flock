@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -17,7 +18,7 @@
             android:layout_height="250dp"
             android:scaleType="fitXY"
             android:id="@+id/no_login"
-            android:src="@drawable/Group"/>
+            android:src="@drawable/group"/>
     </LinearLayout>
 
     <LinearLayout
