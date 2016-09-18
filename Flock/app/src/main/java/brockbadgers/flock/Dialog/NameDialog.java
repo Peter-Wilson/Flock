@@ -11,6 +11,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
@@ -31,6 +32,16 @@ public class NameDialog extends Dialog {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_name_dialog);
+
+        Button submit = (Button) findViewById(R.id.submit_name);
+        submit.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        ChangeColor(v);
+                    }
+                }
+        );
 
         ImageView green = (ImageView) findViewById(R.id.google_green);
         green.setOnClickListener(
