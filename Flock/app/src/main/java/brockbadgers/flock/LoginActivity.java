@@ -24,6 +24,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.os.Handler;
 import android.widget.Toast;
+import brockbadgers.flock.Helpers.MSFaceServiceClient;
 import com.google.firebase.database.*;
 import com.microsoft.projectoxford.face.FaceServiceClient;
 import com.microsoft.projectoxford.face.FaceServiceRestClient;
@@ -128,11 +129,6 @@ public class LoginActivity extends AppCompatActivity {
 
     }
 
-    public static FaceServiceClient getFaceServiceClient() {
-        return sFaceServiceClient;
-    }
-
-
     public void reqCamPermissions() {
         ActivityCompat.requestPermissions(this,
                 new String[]{android.Manifest.permission.CAMERA},
@@ -197,7 +193,7 @@ public class LoginActivity extends AppCompatActivity {
         @Override
         protected VerifyResult doInBackground(Void... voids) {
             try {
-                return sFaceServiceClient.verify(mFaceId0, mFaceId1);
+                return MSFaceServiceClient.getMSServiceClientInstance().verify(mFaceId0, mFaceId1);
             } catch (Exception e) {
                 Log.e(TAG, "" + e);
                 return null;
@@ -218,7 +214,7 @@ public class LoginActivity extends AppCompatActivity {
         @Override
         protected Face[] doInBackground(InputStream... params) {
             // Get an instance of face service client to detect faces in image.
-            FaceServiceClient faceServiceClient = sFaceServiceClient;
+            FaceServiceClient faceServiceClient = MSFaceServiceClient.getMSServiceClientInstance();
             try {
                 // Start detection.
                 return faceServiceClient.detect(
