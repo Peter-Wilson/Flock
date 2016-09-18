@@ -8,4 +8,5 @@
     <string name="firebase_id">Firebase ID</string>
     <string name="sender_id">702826245822</string>
     <string name="user_id">USER ID</string>
+    <string name="title_activity_date_time_dialog">DateTimeDialog</string>
 </resources>

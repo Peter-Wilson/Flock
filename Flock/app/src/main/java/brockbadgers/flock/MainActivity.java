@@ -101,6 +101,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         database = FirebaseDatabase.getInstance().getReference();
+        if(!runtime_permission()){
+            startGPS();
+        }
+
         setContentView(R.layout.activity_map);
 
 
@@ -204,8 +208,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
-        if(runtime_permission())
-            startGPS();
+
 
     }
 
