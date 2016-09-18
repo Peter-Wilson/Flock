@@ -243,6 +243,7 @@ public class LoginActivity extends AppCompatActivity {
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                 SharedPreferences.Editor editor =sharedPref.edit();
                 editor.putBoolean("isActivated",true);
+                editor.putString(getString(R.string.user_id), faceId);
                 editor.commit();
             }
         }

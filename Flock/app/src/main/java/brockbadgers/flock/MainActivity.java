@@ -13,6 +13,16 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.app.Dialog;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -50,6 +60,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.FirebaseApp;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -63,6 +74,13 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import classes.Person;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
+
+import Firebase.FirebaseCalls;
+import brockbadgers.flock.Services.GPS_Service;
+
 
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnInfoWindowClickListener , GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
@@ -84,11 +102,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         database = FirebaseDatabase.getInstance().getReference();
         setContentView(R.layout.activity_map);
-
-
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        boolean isActivated = sharedPref.getBoolean("isActivated",false);
-
 
 
         //Set up google api client
@@ -145,13 +158,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-
-
-
         //setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
 
         int permissionCheck = ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION);
@@ -162,16 +171,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             ((MapFragment) getFragmentManager().findFragmentById(R.id.mapFrag)).getMapAsync(this);
         }
 
-
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        /*FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
             }
-        });
+        });*/
     }
 
     public void onGroupAdd(){
@@ -184,25 +191,110 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void Value(boolean returnVal)
     {
 
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        String ref = sharedPref.getString(getString(R.string.firebase_id), null);
+        String[] refs = new String[]{ref};
+        try {
+            GroupRequest req = new GroupRequest("Peter Wilson",refs,this);
+            new NotificationKeyTask().execute(req);
+        } catch (Exception e) {
+            Log.e("Exception: ", "" + e);
+        }
+
+
+
+        if(runtime_permission())
+            startGPS();
+
     }
 
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case 1: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    ((MapFragment)getFragmentManager().findFragmentById(R.id.mapFrag)).getMapAsync(this);
+    public void startGPS()
+    {
+        Intent i = new Intent(getApplicationContext(), GPS_Service.class);
+        startService(i);
+    }
+
+    public void stopGPS()
+    {
+        Intent i = new Intent(getApplicationContext(), GPS_Service.class);
+        stopService(i);
+    }
+
+    private boolean runtime_permission() {
+        if(Build.VERSION.SDK_INT >= 23 && ContextCompat.checkSelfPermission(this, android.Manifest.permission
+        .ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        {
+            requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, 100);
+            return true;
+        }
+        return false;
+    }
+
+
+
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch(requestCode) {
+            case 1:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                   // openCameraShowPreview();
+                    ((MapFragment) getFragmentManager().findFragmentById(R.id.mapFrag)).getMapAsync(this);
+
                 } else {
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
                 }
-                return;
+
+                break;
+            case 100:
+            {
+                if( grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED)
+                {
+                    startGPS();
+                }else{
+                    runtime_permission();
+                }
+                break;
             }
-            // other 'case' lines to check for other
-            // permissions this app might request
         }
     }
+
+    private boolean checkGooglePlayServicesAvailable()
+    {
+        final int status = GooglePlayServicesUtil.isGooglePlayServicesAvailable(getApplicationContext());
+        if (status == ConnectionResult.SUCCESS)
+        {
+            return true;
+        }
+
+        Log.e("MAIN ACTIVITY", "Google Play Services not available: " + GooglePlayServicesUtil.getErrorString(status));
+
+        if (GooglePlayServicesUtil.isUserRecoverableError(status))
+        {
+            final Dialog errorDialog = GooglePlayServicesUtil.getErrorDialog(status, this, 1);
+            if (errorDialog != null)
+            {
+                errorDialog.show();
+            }
+        }
+
+        return false;
+    }
+
+    static final int REQUEST_IMAGE_CAPTURE = 1;
+
+    private void openCameraShowPreview() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+        }
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -274,16 +366,43 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void addPeopleMarkersToMap(){
 
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        String userId = sharedPref.getString(getString(R.string.user_id), null);
 
-        /*Person a = new Person(testLat,testLong);
-        a.setName("Riley");
-        a.setId("");
-        Person b = new Person(testLat + 0.001,testLong + 0.001);
-        b.setName("Peter");
-        b.setId(1);*/
+        database.child("users").child(userId).addChildEventListener(new ChildEventListener() {
 
-       // database.child("users").child(a.getName()).setValue(a);
-       // database.child("users").child(b.getName()).setValue(b);
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+               if(dataSnapshot.getKey().equals("group")){
+                   Long value = (Long) dataSnapshot.getValue();
+                   if(value != 0){
+                       Log.d("Dialog here","---");
+                   }
+               }
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.d("Database cancel error :",databaseError.getMessage());
+            }
+        });
 
         database.child("users").addValueEventListener(new ValueEventListener() {
             @Override
@@ -455,4 +574,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
+}
+
+class NotificationKeyTask extends AsyncTask<GroupRequest, Void, String> {
+
+    @Override
+    protected String doInBackground(GroupRequest... params) {
+        GroupRequest param = params[0];
+        try {
+            return FirebaseCalls.addtNotificationKey(param.getLeaderName(), param.getRequestIds(), param.getCtx());
+        } catch (Exception e) {
+            Log.e("Exception", "" + e);
+            return "No";
+        }
+    }
+
+    @Override
+    protected void onPostExecute(String s) {
+        Log.d(FirebaseCalls.class.getName(), s);
+    }
 }
