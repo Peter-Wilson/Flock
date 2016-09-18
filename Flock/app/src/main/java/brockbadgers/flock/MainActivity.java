@@ -55,6 +55,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -70,6 +71,7 @@ import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -409,18 +411,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
         database.child("users").addValueEventListener(new ValueEventListener() {
+
+
             @Override
             public void onDataChange(DataSnapshot snapshot) {
+
+                float[] colours = { BitmapDescriptorFactory.HUE_AZURE, BitmapDescriptorFactory.HUE_BLUE, BitmapDescriptorFactory.HUE_CYAN,  BitmapDescriptorFactory.HUE_CYAN, BitmapDescriptorFactory.HUE_MAGENTA, BitmapDescriptorFactory.HUE_RED, BitmapDescriptorFactory.HUE_ORANGE, BitmapDescriptorFactory.HUE_ROSE, BitmapDescriptorFactory.HUE_YELLOW, BitmapDescriptorFactory.HUE_VIOLET /* etc */ };
+
+
                 for (DataSnapshot postSnapshot : snapshot.getChildren()) {
                     Person p = postSnapshot.getValue(Person.class);
                     if(!p.getId().equals(userId)) {
                         if (hm.containsKey(p.getId())) {
+
                             Marker marker = (Marker) hm.get(p.getId());
-                            marker.setPosition(new LatLng(p.getLat(), p.getLong())); // Update the marker
+                            marker = map.addMarker(new MarkerOptions()
+                                    .position(new LatLng(p.getLat(), p.getLong()))
+                                    .icon(BitmapDescriptorFactory.defaultMarker(colours[new Random().nextInt(colours.length)])));
                         } else {
                             Marker usersMarker = map.addMarker(new MarkerOptions()
                                     .position(new LatLng(p.getLat(), p.getLong()))
-                                    .title("Name: " + p.getName()));
+                                    .title("Name: " + p.getName())
+                                    .icon(BitmapDescriptorFactory.defaultMarker(colours[new Random().nextInt(colours.length)])));
                             hm.put(p.getId(), usersMarker);
                         }
                     }
