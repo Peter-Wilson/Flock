@@ -12,8 +12,13 @@ import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.support.annotation.Nullable;
+import android.util.Log;
+
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import brockbadgers.flock.R;
+import classes.Person;
 
 /**
  * Created by Peter on 9/17/2016.
@@ -38,8 +43,12 @@ public class GPS_Service extends Service {
                 //Publish to the DB
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                 String ref = sharedPref.getString(getString(R.string.user_id), null);
-                location.getLongitude();
-                location.getLatitude();
+                Person person = new Person(location.getLatitude(), location.getLongitude());
+                person.setId(ref);
+                DatabaseReference database = FirebaseDatabase.getInstance().getReference();
+                database.child("users").child(person.getId()).setValue(person);
+                Log.d("Long", ""+location.getLongitude());
+                Log.d("Lat", ""+location.getLatitude());
             }
 
             @Override
