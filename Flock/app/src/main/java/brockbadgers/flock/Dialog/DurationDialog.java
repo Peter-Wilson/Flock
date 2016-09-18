@@ -1,4 +1,4 @@
-package brockbadgers.flock;
+package brockbadgers.flock.Dialog;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -17,6 +17,8 @@ import android.widget.NumberPicker;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+
+import brockbadgers.flock.R;
 
 public class DurationDialog extends Dialog {
 

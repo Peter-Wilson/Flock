@@ -4,7 +4,15 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
-
     <color name="black_overlay">#66000000</color>
+
+    <color name="google_green">#61ea62</color>
+    <color name="google_cyan">#61eaeb</color>
+    <color name="google_azure">#70b1f2</color>
+    <color name="google_blue">#6060eb</color>
+    <color name="google_violet">#a058e8</color>
+    <color name="google_yellow">#e9e95e</color>
+
+    <color name="white">#ffffff</color>
 
 </resources>

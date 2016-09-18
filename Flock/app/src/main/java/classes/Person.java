@@ -9,6 +9,7 @@ public class Person {
     private double person_long; //Longitude of house
     private String person_name;
     private String id;
+    private int colour;
     private int group;
 
     public Person(){};
@@ -58,5 +59,13 @@ public class Person {
 
     public int getGroup(){
         return this.group;
+    }
+
+    public int getColour() {
+        return colour;
+    }
+
+    public void setColour(int colour) {
+        this.colour = colour;
     }
 }

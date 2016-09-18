@@ -7,7 +7,7 @@
     android:gravity="center"
     android:fitsSystemWindows="true"
     android:orientation="vertical"
-    tools:context=".DurationDialog"
+    tools:context=".Dialog.DurationDialog"
     android:weightSum="1">
     <TextView
         android:layout_width="wrap_content"
