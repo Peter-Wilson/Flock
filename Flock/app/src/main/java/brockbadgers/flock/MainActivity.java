@@ -690,7 +690,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (matchedFaceIdList == null) {
                     matchedFaceIdList = new ArrayList<>();
                 }
-
                 matchedFaceIdList.add(mFaceId1.toString());
             }
         }
