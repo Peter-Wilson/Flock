@@ -186,6 +186,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         //This will pop up on their phone
         CustomDialogClass cdd= new CustomDialogClass(this);
         cdd.show();
+
     }
 
     public void Value(boolean returnVal)
@@ -382,7 +383,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                if(dataSnapshot.getKey().equals("group")){
                    Long value = (Long) dataSnapshot.getValue();
                    if(value != 0){
-                       Log.d("Dialog here","---");
+                       onGroupAdd();
                    }
                }
 
