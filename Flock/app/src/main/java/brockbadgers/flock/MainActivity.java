@@ -584,7 +584,7 @@ class NotificationKeyTask extends AsyncTask<GroupRequest, Void, String> {
     protected String doInBackground(GroupRequest... params) {
         GroupRequest param = params[0];
         try {
-            return FirebaseCalls.addtNotificationKey(param.getLeaderName(), param.getRequestIds(), param.getCtx());
+            return new FirebaseCalls().addtNotificationKey(param.getLeaderName(), param.getRequestIds(), param.getCtx());
         } catch (Exception e) {
             Log.e("Exception", "" + e);
             return "No";
