@@ -10,6 +10,7 @@ public class Person {
     private String person_name;
     private String id;
     private int group;
+    private boolean accepted;
 
     public Person(){};
 
@@ -17,6 +18,8 @@ public class Person {
 
         this.person_lat = _lat;
         this.person_long = _long;
+        this.accepted = false;
+        this.group = 0;
 
     }
 
@@ -58,5 +61,13 @@ public class Person {
 
     public int getGroup(){
         return this.group;
+    }
+
+    public boolean getAccepted(){
+        return this.accepted;
+    }
+
+    public void setAccepted(boolean didAccepted){
+        this.accepted = didAccepted;
     }
 }
