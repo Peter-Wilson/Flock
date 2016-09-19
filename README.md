@@ -5,7 +5,7 @@
 
 Never lose your friends again
 
-assets used: icons8
+assets used: [Icons8](https://icons8.com/)
 
 Check out the wiki:
 https://github.com/Peter-Wilson/Flock/wiki/Flock
