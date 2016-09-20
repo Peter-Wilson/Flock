@@ -7,6 +7,7 @@ import android.content.IntentSender;
 
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
@@ -18,6 +19,7 @@ import android.os.Build;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -27,9 +29,12 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import brockbadgers.flock.Helpers.MSFaceServiceClient;
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.ConnectionResult;
@@ -64,6 +69,15 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import com.microsoft.projectoxford.face.FaceServiceClient;
+import com.microsoft.projectoxford.face.contract.Face;
+import com.microsoft.projectoxford.face.contract.VerifyResult;
+import com.squareup.picasso.Picasso;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.util.*;
 
 import brockbadgers.flock.Dialog.CustomDialogClass;
 import brockbadgers.flock.Dialog.DurationDialog;
@@ -79,6 +93,7 @@ import brockbadgers.flock.Services.GPS_Service;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnInfoWindowClickListener , GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
+    private static final String TAG = MainActivity.class.getCanonicalName();
     GoogleMap map; //the map shown in the map fragment
     GoogleApiClient mGoogleApiClient; //google api client for location services
     protected static final int REQUEST_CHECK_SETTINGS = 0x1;
@@ -90,11 +105,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     HashMap hm = new HashMap();
     ArrayList<Person> people;
     DatabaseReference database;
+    VerifyResult v;
+    boolean done = false;
+    boolean tookPicture = false;
+    boolean foundFaces = false;
+
+
+    ArrayList<String> matchedFaceIdList;
+    ArrayList<String> kindaMatchedFaceIdList;
+    ArrayList<Double> notMatched;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         database = FirebaseDatabase.getInstance().getReference();
+        matchedFaceIdList = new ArrayList<>();
+        kindaMatchedFaceIdList = new ArrayList<>();
+        notMatched = new ArrayList<>();
         if(!runtime_permission()){
             startGPS();
         }
@@ -177,15 +204,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             ((MapFragment) getFragmentManager().findFragmentById(R.id.mapFrag)).getMapAsync(this);
         }
 
-        /*FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                openCameraShowPreview();
             }
-        });*/
-        if(runtime_permission())
+        });
+        if(!runtime_permission())
             startGPS();
     }
 
@@ -302,6 +329,39 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
+    //AFTER the user has taken a pick....
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+            Bundle extras = data.getExtras();
+            //Get the image.
+            Bitmap mBitmap = (Bitmap) extras.get("data");
+
+
+            //TODO: Open peters date time class.
+//            Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
+//            MainActivity.this.startActivity(mainIntent);
+
+            detect(mBitmap);
+        }
+    }
+
+    private void detect(Bitmap bitmap) {
+        // Put the image into an input stream for detection.
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
+
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        String userId = sharedPref.getString(getString(R.string.user_id), null);
+        database.child("users").child(userId).child("accepted").setValue(true);
+        tookPicture = true;
+
+
+        // Start a background task to detect faces in the image.
+        new DetectionTask().execute(inputStream);
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -347,7 +407,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.setMyLocationEnabled(true); //show the "current location" button in the top right
         map.setOnInfoWindowClickListener(this); //set on click callback for the info window
         map.clear(); //clear any markers currently on the map
-        map.setInfoWindowAdapter(new CustomInfoWindow()); //use the custom info window
 
         currentLoc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         //Starting location is the current location
@@ -360,15 +419,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .build();
         map.moveCamera(CameraUpdateFactory.newCameraPosition(startingPos));
 
-       /* Person testPerson = new Person(testLat, testLong);
 
-        people = new ArrayList<>();
-        ArrayList<MarkerOptions> markersOfPeople = new ArrayList<>();
-
-        people.add(testPerson);
-
-        final Handler h = new Handler();
-        final int delay = 3 * 1000;*/
 
         addPeopleMarkersToMap();
 
@@ -379,7 +430,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void addPeopleMarkersToMap(){
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        final String userId = sharedPref.getString(getString(R.string.user_id), null);
+       final  String userId = sharedPref.getString(getString(R.string.user_id), null);
 
         database.child("users").child(userId).addChildEventListener(new ChildEventListener() {
 
@@ -390,10 +441,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                if(done){
+                    for(String faceId : matchedFaceIdList){
+                        database.child("users").child(faceId).child("group").setValue(1);
+                    }
+                }
+
 
                if(dataSnapshot.getKey().equals("group")){
                    Long value = (Long) dataSnapshot.getValue();
-                   if(value != 0){
+                   if(value != 0 && !tookPicture ){
                        onGroupAdd();
                    }
                }
@@ -416,6 +473,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+
+
         database.child("users").addValueEventListener(new ValueEventListener() {
 
 
@@ -425,9 +484,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 float[] colours = { BitmapDescriptorFactory.HUE_AZURE, BitmapDescriptorFactory.HUE_BLUE, BitmapDescriptorFactory.HUE_CYAN,  BitmapDescriptorFactory.HUE_CYAN, BitmapDescriptorFactory.HUE_MAGENTA, BitmapDescriptorFactory.HUE_RED, BitmapDescriptorFactory.HUE_ORANGE, BitmapDescriptorFactory.HUE_ROSE, BitmapDescriptorFactory.HUE_YELLOW, BitmapDescriptorFactory.HUE_VIOLET /* etc */ };
 
 
+                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.super.getApplicationContext());
+                String userId = sharedPref.getString(getString(R.string.user_id), null);
+                int myGroup = sharedPref.getInt("myGroup",-1);
                 for (DataSnapshot postSnapshot : snapshot.getChildren()) {
                     Person p = postSnapshot.getValue(Person.class);
-                    if(!p.getId().equals(userId)) {
+                    if(!p.getId().equals(userId) && p.getGroup() == 1) {
                         if (hm.containsKey(p.getId())) {
 
                             Marker marker = (Marker) hm.get(p.getId());
@@ -536,69 +598,113 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     /**
      * The custom info window which displays info about the house
      */
-    class CustomInfoWindow extends Activity implements GoogleMap.InfoWindowAdapter{
-        boolean doneLoadingImage = false; //if the image has finished downloading
-        Marker m;
 
+
+    private class DetectionTask extends AsyncTask<InputStream, String, Face[]> {
         @Override
-        public View getInfoWindow(Marker marker) {
-            return null;
-        }
-
-        @Override
-        public View getInfoContents(Marker marker) {
-            //If a new marker has been selected, the image will not have been loaded
-            if(!marker.equals(m)){
-                doneLoadingImage = false;
-            }
-            m = marker;
-
-            //Inflate the layout and get the components
-            View v = getLayoutInflater().inflate(R.layout.custom_info_window, null);
-            ImageView infoImage = (ImageView)v.findViewById(R.id.infoImage);
-            TextView infoPrice = (TextView)v.findViewById(R.id.infoPrice);
-            TextView infoAddress = (TextView)v.findViewById(R.id.infoAddress);
-
-
-
-
-            //Set the two text fields on the info window
-            infoPrice.setText("Bum Bum");
-            infoAddress.setText("I will be back at 7PM!");
-
-            //Load the image with Picasso, using a generic house picture as a placeholder
-            //Picasso.with(getApplicationContext()).placeholder(getResources().getDrawable(R.drawable.ic_star_outline_black_24dp)).into(infoImage, this);
-
-            return v;
-        }
-
-        /**
-         * When Picasso returns with the valid image
-         */
-
-        public void onSuccess() {
-            //If the image is not already loaded, reopen the info window to show it
-            if(!doneLoadingImage){
-                Log.d("Picasso", "Image loaded");
-                doneLoadingImage = true;
-                m.showInfoWindow();
+        protected Face[] doInBackground(InputStream... params) {
+            // Get an instance of face service client to detect faces in image.
+            FaceServiceClient faceServiceClient = MSFaceServiceClient.getMSServiceClientInstance();
+            try {
+                // Start detection.
+                return faceServiceClient.detect(
+                        params[0],  /* Input stream of image to detect */
+                        true,       /* Whether to return face ID */
+                        false,       /* Whether to return face landmarks */
+                        null);
+            }  catch (Exception e) {
+                return null;
             }
         }
 
-        /**
-         * When Picasso can't find the image
-         */
+        @Override
+        protected void onPostExecute(final Face[] faces) {
+            database.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        for (Face face : faces) {
+                            foundFaces = true;
+                            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                            String ref = sharedPref.getString(getString(R.string.user_id), null);
 
-        public void onError() {
-            Log.e("Picasso", "Image load failed");
-            doneLoadingImage = true;
+                            for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
+                                HashMap<String, String> dbMap = (HashMap<String, String>) snapChild.getValue();
+                                //DB Values.
+                                Set<String> dbKey = dbMap.keySet();
+                                for (String dbFaceId : dbKey) {
+                                    if (!face.faceId.toString().equals(ref)) {
+                                        new VerificationTask(face.faceId.toString(), dbFaceId).execute();
+                                    }
+                                }
+                            }
+                        }
+
+                        done = true;
+                        if(matchedFaceIdList.isEmpty()){
+                            if(foundFaces == false){
+                                Toast.makeText(getApplicationContext(),"No faces found.", Toast.LENGTH_LONG).show();
+                            }else {
+                                Toast.makeText(getApplicationContext(), "No results found, please make an account! It's pretty easy", Toast.LENGTH_LONG).show();
+                                foundFaces = false;
+                            }
+                        }
+
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+            });
+
         }
-
-
     }
 
 
+    private class VerificationTask extends AsyncTask<Void, String, VerifyResult> {
+        private final String TAG = VerificationTask.class.getCanonicalName();
+        private UUID mFaceId0;
+        private UUID mFaceId1;
+
+        public VerificationTask(String mFaceId0, String mFaceId1) {
+            this.mFaceId0 = UUID.fromString(mFaceId0);
+            this.mFaceId1 = UUID.fromString(mFaceId1);
+        }
+
+        @Override
+        protected VerifyResult doInBackground(Void... voids) {
+            try {
+                v =  MSFaceServiceClient.getMSServiceClientInstance().verify(mFaceId0, mFaceId1);
+                if(v.confidence > 0.5 || v.isIdentical) {
+                    matchedFaceIdList.add(mFaceId1.toString());
+                }
+                return v;
+            } catch (Exception e) {
+
+                String error = e.getMessage();
+                Log.e(TAG, "" + e);
+                return null;
+            }
+        }
+
+        @Override
+        protected void onCancelled() {
+            Log.d(TAG, "VERIFY RESULT WAS CANCELLED");
+        }
+
+        @Override
+        protected void onPostExecute(VerifyResult verifyResult) {
+            Log.d("We are verifying","Now");
+            if (verifyResult.isIdentical) {
+
+            }
+        }
+    }
+
+
+
 }
+
 
 class NotificationKeyTask extends AsyncTask<GroupRequest, Void, String> {
 

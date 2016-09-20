@@ -49,7 +49,7 @@ public class CustomDialogClass extends Dialog implements android.view.View.OnCli
         String userId = sharedPref.getString(c.getString(R.string.user_id), null);
         switch (v.getId()) {
             case R.id.btn_yes:
-                database.child("users").child(userId).child("accepted").setValue(1);
+                database.child("users").child(userId).child("accepted").setValue(true);
                 c.Value(true);
                 dismiss();
                 break;
