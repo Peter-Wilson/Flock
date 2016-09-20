@@ -1,6 +1,5 @@
 package brockbadgers.flock;
 
-import android.*;
 import android.Manifest;
 import android.app.Activity;
 
@@ -8,25 +7,19 @@ import android.content.IntentSender;
 
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.app.Dialog;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -36,6 +29,7 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -58,11 +52,11 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.firebase.FirebaseApp;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -79,9 +73,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import brockbadgers.flock.Dialog.CustomDialogClass;
+import brockbadgers.flock.Dialog.DurationDialog;
+import brockbadgers.flock.Dialog.NameDialog;
 import classes.Person;
 
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 
 import Firebase.FirebaseCalls;
@@ -122,6 +124,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         notMatched = new ArrayList<>();
         if(!runtime_permission()){
             startGPS();
+        }
+
+       SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+       if(sharedPref.getString(getString(R.string.name), null) == null &&
+               (sharedPref.getString(getString(R.string.colour), null) == null))
+        {
+            NameDialog name = new NameDialog(this);
+            name.show();
         }
 
         setContentView(R.layout.activity_map);
@@ -202,6 +212,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 openCameraShowPreview();
             }
         });
+        if(!runtime_permission())
+            startGPS();
     }
 
     public void onGroupAdd(){
@@ -372,6 +384,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return super.onOptionsItemSelected(item);
     }
 
+    public void LaunchDurationPicker()
+    {
+        DurationDialog howLong = new DurationDialog(this);
+        howLong.show();
+    }
+
 
     public void setUpMap() {
 
@@ -458,21 +476,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
         database.child("users").addValueEventListener(new ValueEventListener() {
+
+
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.super.getApplicationContext());
                 String userId = sharedPref.getString(getString(R.string.user_id), null);
                 int myGroup = sharedPref.getInt("myGroup",-1);
+
+                float[] colours = { BitmapDescriptorFactory.HUE_AZURE, BitmapDescriptorFactory.HUE_BLUE, BitmapDescriptorFactory.HUE_CYAN,  BitmapDescriptorFactory.HUE_CYAN, BitmapDescriptorFactory.HUE_MAGENTA, BitmapDescriptorFactory.HUE_RED, BitmapDescriptorFactory.HUE_ORANGE, BitmapDescriptorFactory.HUE_ROSE, BitmapDescriptorFactory.HUE_YELLOW, BitmapDescriptorFactory.HUE_VIOLET /* etc */ };
+
+
                 for (DataSnapshot postSnapshot : snapshot.getChildren()) {
                     Person p = postSnapshot.getValue(Person.class);
                     if(!p.getId().equals(userId) && p.getGroup() == 1) {
                         if (hm.containsKey(p.getId())) {
+
                             Marker marker = (Marker) hm.get(p.getId());
-                            marker.setPosition(new LatLng(p.getLat(), p.getLong())); // Update the marker
+                            marker = map.addMarker(new MarkerOptions()
+                                    .position(new LatLng(p.getLat(), p.getLong()))
+                                    .icon(BitmapDescriptorFactory.defaultMarker(colours[p.getColour()])));
                         } else {
                             Marker usersMarker = map.addMarker(new MarkerOptions()
                                     .position(new LatLng(p.getLat(), p.getLong()))
-                                    .title(p.getName()));
+                                    .title(p.getName())
+                                    .icon(BitmapDescriptorFactory.defaultMarker(colours[p.getColour()])));
                             hm.put(p.getId(), usersMarker);
                         }
                     }

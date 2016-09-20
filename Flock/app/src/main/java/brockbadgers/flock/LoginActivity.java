@@ -1,10 +1,12 @@
 package brockbadgers.flock;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.drawable.ColorDrawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -17,6 +19,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
@@ -39,6 +42,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 
+import brockbadgers.flock.Dialog.NameDialog;
 import classes.Person;
 
 public class LoginActivity extends AppCompatActivity {
@@ -100,6 +104,8 @@ public class LoginActivity extends AppCompatActivity {
                         }
                     }
             );
+
+
 
             sFaceServiceClient = new FaceServiceRestClient("6cbf242786b143e8b3b1eadf70e80b68");
 
@@ -165,6 +171,7 @@ public class LoginActivity extends AppCompatActivity {
             Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
             LoginActivity.this.startActivity(mainIntent);
 
+           //finish();
             detect(mBitmap);
         }
     }

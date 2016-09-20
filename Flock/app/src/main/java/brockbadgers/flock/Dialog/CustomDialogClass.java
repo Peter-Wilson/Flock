@@ -1,4 +1,4 @@
-package brockbadgers.flock;
+package brockbadgers.flock.Dialog;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -9,6 +9,8 @@ import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 
+import brockbadgers.flock.MainActivity;
+import brockbadgers.flock.R;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 

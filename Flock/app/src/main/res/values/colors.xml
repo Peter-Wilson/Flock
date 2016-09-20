@@ -5,9 +5,15 @@
     <color name="colorPrimaryDark">#2980b9</color>
     <color name="colorAccent">#27ae60</color>
     <color name="error">#e74c3c</color>
-
-
-
     <color name="black_overlay">#66000000</color>
+
+    <color name="google_green">#61ea62</color>
+    <color name="google_cyan">#61eaeb</color>
+    <color name="google_azure">#70b1f2</color>
+    <color name="google_blue">#6060eb</color>
+    <color name="google_violet">#a058e8</color>
+    <color name="google_yellow">#e9e95e</color>
+
+    <color name="white">#ffffff</color>
 
 </resources>
