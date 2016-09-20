@@ -30,6 +30,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
 import android.view.ViewGroup;
+import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -78,6 +80,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import brockbadgers.flock.Dialog.CustomDialogClass;
 import brockbadgers.flock.Dialog.DurationDialog;
@@ -480,13 +488,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-
-                float[] colours = { BitmapDescriptorFactory.HUE_AZURE, BitmapDescriptorFactory.HUE_BLUE, BitmapDescriptorFactory.HUE_CYAN,  BitmapDescriptorFactory.HUE_CYAN, BitmapDescriptorFactory.HUE_MAGENTA, BitmapDescriptorFactory.HUE_RED, BitmapDescriptorFactory.HUE_ORANGE, BitmapDescriptorFactory.HUE_ROSE, BitmapDescriptorFactory.HUE_YELLOW, BitmapDescriptorFactory.HUE_VIOLET /* etc */ };
-
-
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.super.getApplicationContext());
                 String userId = sharedPref.getString(getString(R.string.user_id), null);
                 int myGroup = sharedPref.getInt("myGroup",-1);
+
+                float[] colours = { BitmapDescriptorFactory.HUE_AZURE, BitmapDescriptorFactory.HUE_BLUE, BitmapDescriptorFactory.HUE_CYAN,  BitmapDescriptorFactory.HUE_CYAN, BitmapDescriptorFactory.HUE_MAGENTA, BitmapDescriptorFactory.HUE_RED, BitmapDescriptorFactory.HUE_ORANGE, BitmapDescriptorFactory.HUE_ROSE, BitmapDescriptorFactory.HUE_YELLOW, BitmapDescriptorFactory.HUE_VIOLET /* etc */ };
+
                 for (DataSnapshot postSnapshot : snapshot.getChildren()) {
                     Person p = postSnapshot.getValue(Person.class);
                     if(!p.getId().equals(userId) && p.getGroup() == 1) {
@@ -499,7 +506,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         } else {
                             Marker usersMarker = map.addMarker(new MarkerOptions()
                                     .position(new LatLng(p.getLat(), p.getLong()))
-                                    .title("Name: " + p.getName())
+                                    .title(p.getName())
                                     .icon(BitmapDescriptorFactory.defaultMarker(colours[p.getColour()])));
                             hm.put(p.getId(), usersMarker);
                         }
