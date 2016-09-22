@@ -28,6 +28,7 @@ public class NameDialog extends Dialog {
 
     Activity a;
     int colour = 0;
+    ImageView green;
 
     public NameDialog(Activity activity) {
         super(activity);
@@ -40,7 +41,9 @@ public class NameDialog extends Dialog {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_name_dialog);
+        colour = 0;
 
+        final EditText input = (EditText) findViewById(R.id.username);
         Button submit = (Button) findViewById(R.id.submit_name);
         submit.setOnClickListener(
                 new View.OnClickListener() {
@@ -49,10 +52,9 @@ public class NameDialog extends Dialog {
                         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(a.getApplicationContext());
                         String ref = sharedPref.getString(a.getString(R.string.user_id), null);
                         DatabaseReference database = FirebaseDatabase.getInstance().getReference();
-                        String name = ((EditText)a.findViewById(R.id.Name)).getText().toString();
+                        String name = "";//input.getText().toString();
                         database.child("users").child(ref).child("name").setValue(name);
                         database.child("users").child(ref).child("colour").setValue(colour);
-
 
                         SharedPreferences.Editor editor = sharedPref.edit();
                         editor.putString(a.getString(R.string.name), name);
@@ -63,7 +65,7 @@ public class NameDialog extends Dialog {
                 }
         );
 
-        ImageView green = (ImageView) findViewById(R.id.google_green);
+        green = (ImageView) findViewById(R.id.google_green);
         green.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
@@ -130,6 +132,8 @@ public class NameDialog extends Dialog {
         );
 
     }
+
+
 
     void ChangeColor(View v)
     {

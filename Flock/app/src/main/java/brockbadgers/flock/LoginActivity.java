@@ -63,6 +63,13 @@ public class LoginActivity extends AppCompatActivity {
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         boolean isActivated = sharedPref.getBoolean("isActivated",false);
+        //if(sharedPref.getString(getString(R.string.name), null) == null &&
+        //        (sharedPref.getString(getString(R.string.colour), null) == null))
+       // {
+            NameDialog name = new NameDialog(this);
+            name.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+            name.show();
+        //}
 
         if(isActivated) {
             Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
