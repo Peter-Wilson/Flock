@@ -61,8 +61,8 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
 
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        boolean isActivated = sharedPref.getBoolean("isActivated",false);
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        boolean isActivated = sharedPref.getBoolean("isActivated", false);
 
         if(isActivated) {
             Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
@@ -168,10 +168,6 @@ public class LoginActivity extends AppCompatActivity {
             /* Create an Intent that will start the Menu-Activity. */
             Bundle extras = data.getExtras();
             Bitmap mBitmap = (Bitmap) extras.get("data");
-            Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
-            LoginActivity.this.startActivity(mainIntent);
-
-           //finish();
             detect(mBitmap);
         }
     }
@@ -179,7 +175,7 @@ public class LoginActivity extends AppCompatActivity {
     private void detect(Bitmap bitmap) {
         // Put the image into an input stream for detection.
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, output);
         ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
 
         // Start a background task to detect faces in the image.
@@ -214,6 +210,7 @@ public class LoginActivity extends AppCompatActivity {
             } else {
                 Log.d(TAG, "NAY");
             }
+
         }
     }
 
@@ -248,6 +245,9 @@ public class LoginActivity extends AppCompatActivity {
                 editor.putBoolean("isActivated",true);
                 editor.putString(getString(R.string.user_id), faceId);
                 editor.commit();
+                Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
+                LoginActivity.this.startActivity(mainIntent);
+                finish();
             }
         }
     }
