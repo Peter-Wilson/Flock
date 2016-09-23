@@ -52,7 +52,7 @@ public class NameDialog extends Dialog {
                         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(a.getApplicationContext());
                         String ref = sharedPref.getString(a.getString(R.string.user_id), null);
                         DatabaseReference database = FirebaseDatabase.getInstance().getReference();
-                        String name = "";//input.getText().toString();
+                        String name = input.getText().toString();
                         database.child("users").child(ref).child("name").setValue(name);
                         database.child("users").child(ref).child("colour").setValue(colour);
 

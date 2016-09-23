@@ -18,15 +18,16 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
+import brockbadgers.flock.MainActivity;
 import brockbadgers.flock.R;
 
 public class DurationDialog extends Dialog {
 
-    public Activity activity;
+    public MainActivity activity;
     public Dialog d;
 
-    public DurationDialog(Activity activity) {
-        super(activity);
+    public DurationDialog(MainActivity activity) {
+        super((Activity)activity);
         // TODO Auto-generated constructor stub
         this.activity = activity;
 
@@ -58,6 +59,7 @@ public class DurationDialog extends Dialog {
                 SharedPreferences.Editor editor = sharedPref.edit();
                 editor.putFloat(activity.getString(R.string.hour_duration), now.getTimeInMillis());
                 editor.commit();
+                activity.openCameraShowPreview();
                 hide();
             }
         });

@@ -8,6 +8,7 @@ import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
@@ -135,12 +136,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-       if(sharedPref.getString(getString(R.string.name), null) == null &&
-               (sharedPref.getString(getString(R.string.colour), null) == null))
-        {
+        if(sharedPref.getString(getString(R.string.name), null) == null &&
+                (sharedPref.getString(getString(R.string.colour), null) == null))
+         {
             NameDialog name = new NameDialog(this);
+            name.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
             name.show();
         }
+
 
         setContentView(R.layout.activity_map);
 
@@ -217,7 +220,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                openCameraShowPreview();
+                LaunchDurationPicker();
             }
         });
         if(!runtime_permission())
@@ -329,7 +332,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
 
-    private void openCameraShowPreview() {
+    public void openCameraShowPreview() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);

@@ -26,6 +26,7 @@
             android:layout_height="wrap_content"
             android:background="@color/white"
             android:id="@+id/username"
+            android:text=""
             android:textColor="@color/black"
             android:textSize="25dp" />
     </LinearLayout>
