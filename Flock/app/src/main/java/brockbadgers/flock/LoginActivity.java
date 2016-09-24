@@ -27,6 +27,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.os.Handler;
 import android.widget.Toast;
+
+import brockbadgers.flock.Dialog.LoadingDialog;
 import brockbadgers.flock.Helpers.MSFaceServiceClient;
 import com.google.firebase.database.*;
 import com.microsoft.projectoxford.face.FaceServiceClient;
@@ -105,32 +107,7 @@ public class LoginActivity extends AppCompatActivity {
                     }
             );
 
-
-
             sFaceServiceClient = new FaceServiceRestClient("6cbf242786b143e8b3b1eadf70e80b68");
-
-            database = FirebaseDatabase.getInstance().getReference();
-
-            database.child("users").addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    if (currFaceId != null) {
-                        for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
-                            Person p = snapChild.getValue(Person.class);
-                            if (!p.getId().equals(currFaceId)) {
-                                Log.d(TAG, p.getId());
-                                Log.d(TAG, currFaceId);
-                                new VerificationTask(p.getId(), currFaceId).execute();
-                            }
-                        }
-                    }
-                }
-
-                @Override
-                public void onCancelled(DatabaseError databaseError) {
-                    Log.d(TAG, "SOMETHING BAD HAPPENED WHEN A VALUE CHANGED: " + databaseError.getMessage());
-                }
-            });
         }
 
     }
@@ -182,39 +159,17 @@ public class LoginActivity extends AppCompatActivity {
         new DetectionTask().execute(inputStream);
     }
 
-    private class VerificationTask extends AsyncTask<Void, String, VerifyResult> {
-        private UUID mFaceId0;
-        private UUID mFaceId1;
 
-        public VerificationTask(String mFaceId0, String mFaceId1) {
-            this.mFaceId0 = UUID.fromString(mFaceId0);
-            this.mFaceId1 = UUID.fromString(mFaceId1);
-
-
-        }
-
-        @Override
-        protected VerifyResult doInBackground(Void... voids) {
-            try {
-                return MSFaceServiceClient.getMSServiceClientInstance().verify(mFaceId0, mFaceId1);
-            } catch (Exception e) {
-                Log.e(TAG, "" + e);
-                return null;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(VerifyResult verifyResult) {
-            if (verifyResult.isIdentical) {
-                Log.d(TAG, "YAY");
-            } else {
-                Log.d(TAG, "NAY");
-            }
-
-        }
-    }
 
     private class DetectionTask extends AsyncTask<InputStream, String, Face[]> {
+        LoadingDialog dialog;
+
+        @Override
+        protected void onPreExecute() {
+            dialog = new LoadingDialog(LoginActivity.this);
+            dialog.show();
+        }
+
         @Override
         protected Face[] doInBackground(InputStream... params) {
             // Get an instance of face service client to detect faces in image.
@@ -236,17 +191,10 @@ public class LoginActivity extends AppCompatActivity {
             String faceId = faces[0].faceId.toString();
             if (faceId != null) {
                 currFaceId = faceId;
-                Person p = new Person(43.471265, -80.542684);
-                p.setId(faceId);
-                p.setName("Test Person");
-                database.child("users").child(p.getId()).setValue(p);
-                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                SharedPreferences.Editor editor =sharedPref.edit();
-                editor.putBoolean("isActivated",true);
-                editor.putString(getString(R.string.user_id), faceId);
-                editor.commit();
                 Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
+                mainIntent.putExtra(getString(R.string.user_id), currFaceId);
                 LoginActivity.this.startActivity(mainIntent);
+                dialog.hide();
                 finish();
             }
         }

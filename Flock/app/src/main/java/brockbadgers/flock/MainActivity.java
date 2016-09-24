@@ -37,6 +37,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import brockbadgers.flock.Dialog.LoadingDialog;
 import brockbadgers.flock.Helpers.MSFaceServiceClient;
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
@@ -65,6 +66,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
@@ -118,6 +120,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     boolean done = false;
     boolean tookPicture = false;
     boolean foundFaces = false;
+    private String currFaceId;
+    private boolean faceAlreadyFound = false;
+    SharedPreferences sharedPref;
 
 
     ArrayList<String> matchedFaceIdList;
@@ -126,27 +131,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
-        database = FirebaseDatabase.getInstance().getReference();
-        matchedFaceIdList = new ArrayList<>();
-        kindaMatchedFaceIdList = new ArrayList<>();
-        notMatched = new ArrayList<>();
-        if(!runtime_permission()){
-            startGPS();
-        }
-
-       SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        if(sharedPref.getString(getString(R.string.name), null) == null &&
-                (sharedPref.getString(getString(R.string.colour), null) == null))
-         {
-            NameDialog name = new NameDialog(this);
-            name.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
-            name.show();
-        }
-
-
         setContentView(R.layout.activity_map);
 
+        //setContentView(R.layout.activity_main);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        database = FirebaseDatabase.getInstance().getReference();
+        sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
         //Set up google api client
         if (mGoogleApiClient == null) {
@@ -202,10 +196,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        //setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
         int permissionCheck = ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION);
 
@@ -223,6 +213,56 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 LaunchDurationPicker();
             }
         });
+
+        if(sharedPref.getString(getString(R.string.user_id), null) == null && getIntent().hasExtra(getString(R.string.user_id))) {
+            //Get the id from the login screen and attemp to verify it
+            //TODO: don't progress unless there is a valid or new user_id
+            Intent intent = getIntent();
+            currFaceId = intent.getStringExtra(getString(R.string.user_id));
+
+            new  LoadExistingUserTask().execute();
+        }
+        else
+        {
+            UserVerified();
+        }
+
+    }
+
+    public void saveFace(String faceId)
+    {
+        Person p = new Person(43.471265, -80.542684);
+        p.setId(faceId);
+        p.setName("Test Person");
+        database.child("users").child(p.getId()).setValue(p);
+        SharedPreferences.Editor editor =sharedPref.edit();
+        editor.putBoolean("isActivated",true);
+        editor.putString(getString(R.string.user_id), faceId);
+        editor.commit();
+    }
+
+    public void UserVerified()
+    {
+        database = FirebaseDatabase.getInstance().getReference();
+        matchedFaceIdList = new ArrayList<>();
+        kindaMatchedFaceIdList = new ArrayList<>();
+        notMatched = new ArrayList<>();
+        if(!runtime_permission()){
+            startGPS();
+        }
+
+        if(sharedPref.getString(getString(R.string.name), null) == null &&
+                (sharedPref.getString(getString(R.string.colour), null) == null))
+        {
+            NameDialog name = new NameDialog(this);
+            name.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+            name.show();
+        }
+
+
+
+
+
         if(!runtime_permission())
             startGPS();
     }
@@ -250,6 +290,48 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
+    }
+
+    private class VerificationAlreadyInTask extends AsyncTask<Void, String, VerifyResult> {
+        private UUID mFaceId0;
+        private UUID mFaceId1;
+        private String newId;
+        private String currentId;
+
+        public VerificationAlreadyInTask(String mFaceId0, String mFaceId1) {
+            newId = mFaceId0;
+            currentId = mFaceId1;
+            this.mFaceId0 = UUID.fromString(mFaceId0);
+            this.mFaceId1 = UUID.fromString(mFaceId1);
+
+
+        }
+
+        @Override
+        protected VerifyResult doInBackground(Void... voids) {
+            try {
+                VerifyResult v =  MSFaceServiceClient.getMSServiceClientInstance().verify(mFaceId0, mFaceId1);
+                if(v.confidence > 0.5 || v.isIdentical) {
+                    currFaceId = newId;
+                    faceAlreadyFound = true;
+                }
+                return null;
+
+            } catch (Exception e) {
+                Log.e(TAG, "" + e);
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(VerifyResult verifyResult) {
+            if (verifyResult.isIdentical && !faceAlreadyFound) {
+                Log.d(TAG, "YAY");
+            } else {
+                Log.d(TAG, "NAY");
+            }
+
+        }
     }
 
     public void startGPS()
@@ -525,7 +607,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
 
-    }
+   }
+
+
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -605,9 +689,67 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mGoogleApiClient.disconnect();
     }
 
-    /**
-     * The custom info window which displays info about the house
-     */
+    private class LoadExistingUserTask extends AsyncTask<String, String, String> {
+        LoadingDialog dialog;
+
+
+        @Override
+        protected void onPreExecute() {
+            dialog = new LoadingDialog(MainActivity.this);
+            dialog.show();
+        }
+
+        //Determine if that user is already in the DB
+        @Override
+        protected String doInBackground(String... params) {
+            // Get an instance of face service client to detect faces in image.
+            FaceServiceClient faceServiceClient = MSFaceServiceClient.getMSServiceClientInstance();
+            try {
+                Query queryRef = database.orderByKey();
+                //This shouldn't be on Change, we want to call it before we input it into the db
+                queryRef.addChildEventListener(new ChildEventListener() {
+                    @Override
+                    public void onChildAdded(DataSnapshot dataSnapshot, String previousChild) {
+                        if (currFaceId != null) {
+                            for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
+                                Person p = snapChild.getValue(Person.class);
+                                if (!p.getId().equals(currFaceId)) {
+                                    Log.d(TAG, p.getId());
+                                    Log.d(TAG, currFaceId);
+                                    new VerificationAlreadyInTask(p.getId(), currFaceId).execute();
+                                }
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onChildChanged(DataSnapshot dataSnapshot, String s) { }
+
+                    @Override
+                    public void onChildRemoved(DataSnapshot dataSnapshot) { }
+
+                    @Override
+                    public void onChildMoved(DataSnapshot dataSnapshot, String s) { }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        Log.d(TAG, "SOMETHING BAD HAPPENED WHEN A VALUE CHANGED: " + databaseError.getMessage());
+                    }
+                });
+                return null;
+            }  catch (Exception e) {
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(String string) {
+                dialog.hide();
+                if(!faceAlreadyFound)
+                    saveFace(currFaceId);
+                UserVerified();
+            }
+        }
 
 
     private class DetectionTask extends AsyncTask<InputStream, String, Face[]> {
@@ -671,50 +813,51 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
-    private class VerificationTask extends AsyncTask<Void, String, VerifyResult> {
-        private final String TAG = VerificationTask.class.getCanonicalName();
-        private UUID mFaceId0;
-        private UUID mFaceId1;
 
-        public VerificationTask(String mFaceId0, String mFaceId1) {
-            this.mFaceId0 = UUID.fromString(mFaceId0);
-            this.mFaceId1 = UUID.fromString(mFaceId1);
-        }
-
-        @Override
-        protected VerifyResult doInBackground(Void... voids) {
-            try {
-                v =  MSFaceServiceClient.getMSServiceClientInstance().verify(mFaceId0, mFaceId1);
-                if(v.confidence > 0.5 || v.isIdentical) {
-                    matchedFaceIdList.add(mFaceId1.toString());
-                }
-                return v;
-            } catch (Exception e) {
-
-                String error = e.getMessage();
-                Log.e(TAG, "" + e);
-                return null;
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            Log.d(TAG, "VERIFY RESULT WAS CANCELLED");
-        }
-
-        @Override
-        protected void onPostExecute(VerifyResult verifyResult) {
-            Log.d("We are verifying","Now");
-            if (verifyResult.isIdentical) {
-
-            }
-        }
-    }
 
 
 
 }
 
+class VerificationTask extends AsyncTask<Void, String, VerifyResult> {
+    private final String TAG = VerificationTask.class.getCanonicalName();
+    private UUID mFaceId0;
+    private UUID mFaceId1;
+
+    public VerificationTask(String mFaceId0, String mFaceId1) {
+        this.mFaceId0 = UUID.fromString(mFaceId0);
+        this.mFaceId1 = UUID.fromString(mFaceId1);
+    }
+
+    @Override
+    protected VerifyResult doInBackground(Void... voids) {
+        try {
+            VerifyResult v =  MSFaceServiceClient.getMSServiceClientInstance().verify(mFaceId0, mFaceId1);
+            if(v.confidence > 0.5 || v.isIdentical) {
+                matchedFaceIdList.add(mFaceId1.toString());
+            }
+            return v;
+        } catch (Exception e) {
+
+            String error = e.getMessage();
+            Log.e(TAG, "" + e);
+            return null;
+        }
+    }
+
+    @Override
+    protected void onCancelled() {
+        Log.d(TAG, "VERIFY RESULT WAS CANCELLED");
+    }
+
+    @Override
+    protected void onPostExecute(VerifyResult verifyResult) {
+        Log.d("We are verifying","Now");
+        if (verifyResult.isIdentical) {
+
+        }
+    }
+}
 
 class NotificationKeyTask extends AsyncTask<GroupRequest, Void, String> {
 
