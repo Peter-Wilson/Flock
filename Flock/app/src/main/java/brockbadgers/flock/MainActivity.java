@@ -1,8 +1,8 @@
 package brockbadgers.flock;
 
 import android.Manifest;
-import android.app.Activity;
 
+import android.app.ProgressDialog;
 import android.content.IntentSender;
 
 import android.content.SharedPreferences;
@@ -29,15 +29,8 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.EditText;
-import android.view.ViewGroup;
-import android.view.ViewGroup;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import brockbadgers.flock.Dialog.LoadingDialog;
 import brockbadgers.flock.Helpers.MSFaceServiceClient;
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
@@ -71,24 +64,15 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
+
 import com.microsoft.projectoxford.face.FaceServiceClient;
 import com.microsoft.projectoxford.face.contract.Face;
 import com.microsoft.projectoxford.face.contract.VerifyResult;
-import com.squareup.picasso.Picasso;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.*;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import brockbadgers.flock.Dialog.CustomDialogClass;
 import brockbadgers.flock.Dialog.DurationDialog;
@@ -690,12 +674,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private class LoadExistingUserTask extends AsyncTask<String, String, String> {
-        LoadingDialog dialog;
+        ProgressDialog dialog;
 
 
         @Override
         protected void onPreExecute() {
-            dialog = new LoadingDialog(MainActivity.this);
+            dialog = new ProgressDialog(MainActivity.this);
+            dialog.setMessage("Verifying Face with Database");
             dialog.show();
         }
 
@@ -772,41 +757,41 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         protected void onPostExecute(final Face[] faces) {
             database.addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        for (Face face : faces) {
-                            foundFaces = true;
-                            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                            String ref = sharedPref.getString(getString(R.string.user_id), null);
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    for (Face face : faces) {
+                        foundFaces = true;
+                        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                        String ref = sharedPref.getString(getString(R.string.user_id), null);
 
-                            for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
-                                HashMap<String, String> dbMap = (HashMap<String, String>) snapChild.getValue();
-                                //DB Values.
-                                Set<String> dbKey = dbMap.keySet();
-                                for (String dbFaceId : dbKey) {
-                                    if (!face.faceId.toString().equals(ref)) {
-                                        new VerificationTask(face.faceId.toString(), dbFaceId).execute();
-                                    }
+                        for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
+                            HashMap<String, String> dbMap = (HashMap<String, String>) snapChild.getValue();
+                            //DB Values.
+                            Set<String> dbKey = dbMap.keySet();
+                            for (String dbFaceId : dbKey) {
+                                if (!face.faceId.toString().equals(ref)) {
+                                    new VerificationTask(face.faceId.toString(), dbFaceId).execute();
                                 }
                             }
                         }
+                    }
 
-                        done = true;
-                        if(matchedFaceIdList.isEmpty()){
-                            if(foundFaces == false){
-                                Toast.makeText(getApplicationContext(),"No faces found.", Toast.LENGTH_LONG).show();
-                            }else {
-                                Toast.makeText(getApplicationContext(), "No results found, please make an account! It's pretty easy", Toast.LENGTH_LONG).show();
-                                foundFaces = false;
-                            }
+                    done = true;
+                    if (matchedFaceIdList.isEmpty()) {
+                        if (foundFaces == false) {
+                            Toast.makeText(getApplicationContext(), "No faces found.", Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(getApplicationContext(), "No results found, please make an account! It's pretty easy", Toast.LENGTH_LONG).show();
+                            foundFaces = false;
                         }
-
                     }
 
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
+                }
 
-                    }
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+
+                }
             });
 
         }
@@ -814,66 +799,67 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
+    class VerificationTask extends AsyncTask<Void, String, VerifyResult> {
+        private final String TAG = VerificationTask.class.getCanonicalName();
+        private UUID mFaceId0;
+        private UUID mFaceId1;
 
+        public VerificationTask(String mFaceId0, String mFaceId1) {
+            this.mFaceId0 = UUID.fromString(mFaceId0);
+            this.mFaceId1 = UUID.fromString(mFaceId1);
+        }
 
-
-}
-
-class VerificationTask extends AsyncTask<Void, String, VerifyResult> {
-    private final String TAG = VerificationTask.class.getCanonicalName();
-    private UUID mFaceId0;
-    private UUID mFaceId1;
-
-    public VerificationTask(String mFaceId0, String mFaceId1) {
-        this.mFaceId0 = UUID.fromString(mFaceId0);
-        this.mFaceId1 = UUID.fromString(mFaceId1);
-    }
-
-    @Override
-    protected VerifyResult doInBackground(Void... voids) {
-        try {
-            VerifyResult v =  MSFaceServiceClient.getMSServiceClientInstance().verify(mFaceId0, mFaceId1);
-            if(v.confidence > 0.5 || v.isIdentical) {
-                matchedFaceIdList.add(mFaceId1.toString());
+        @Override
+        protected VerifyResult doInBackground(Void... voids) {
+            try {
+                VerifyResult v =  MSFaceServiceClient.getMSServiceClientInstance().verify(mFaceId0, mFaceId1);
+                if(v != null && v.confidence > 0.5 || v.isIdentical) {
+                    matchedFaceIdList.add(mFaceId1.toString());
+                }
+                return v;
+            } catch (Exception e) {
+                String error = e.getMessage();
+                Log.e(TAG, "" + e);
+                return null;
             }
-            return v;
-        } catch (Exception e) {
+        }
 
-            String error = e.getMessage();
-            Log.e(TAG, "" + e);
-            return null;
+        @Override
+        protected void onCancelled() {
+            Log.d(TAG, "VERIFY RESULT WAS CANCELLED");
+        }
+
+        @Override
+        protected void onPostExecute(VerifyResult verifyResult) {
+            Log.d("We are verifying", "Now");
+            if (verifyResult.isIdentical) {
+
+            }
         }
     }
 
-    @Override
-    protected void onCancelled() {
-        Log.d(TAG, "VERIFY RESULT WAS CANCELLED");
-    }
+    class NotificationKeyTask extends AsyncTask<GroupRequest, Void, String> {
 
-    @Override
-    protected void onPostExecute(VerifyResult verifyResult) {
-        Log.d("We are verifying","Now");
-        if (verifyResult.isIdentical) {
+        @Override
+        protected String doInBackground(GroupRequest... params) {
+            GroupRequest param = params[0];
+            try {
+                return new FirebaseCalls().addtNotificationKey(param.getLeaderName(), param.getRequestIds(), param.getCtx());
+            } catch (Exception e) {
+                Log.e("Exception", "" + e);
+                return "No";
+            }
+        }
 
+        @Override
+        protected void onPostExecute(String s) {
+            Log.d(FirebaseCalls.class.getName(), s);
         }
     }
+
+
 }
 
-class NotificationKeyTask extends AsyncTask<GroupRequest, Void, String> {
 
-    @Override
-    protected String doInBackground(GroupRequest... params) {
-        GroupRequest param = params[0];
-        try {
-            return new FirebaseCalls().addtNotificationKey(param.getLeaderName(), param.getRequestIds(), param.getCtx());
-        } catch (Exception e) {
-            Log.e("Exception", "" + e);
-            return "No";
-        }
-    }
 
-    @Override
-    protected void onPostExecute(String s) {
-        Log.d(FirebaseCalls.class.getName(), s);
-    }
-}
+
