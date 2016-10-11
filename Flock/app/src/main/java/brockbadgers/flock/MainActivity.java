@@ -3,6 +3,7 @@ package brockbadgers.flock;
 import android.Manifest;
 
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.IntentSender;
 
 import android.content.SharedPreferences;
@@ -10,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -18,6 +20,7 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -472,35 +475,60 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
+
             return;
         }
-        map.setMyLocationEnabled(true); //show the "current location" button in the top right
-        map.setOnInfoWindowClickListener(this); //set on click callback for the info window
-        map.clear(); //clear any markers currently on the map
 
-        currentLoc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        //Starting location is the current location
-        LatLng startingLatLng = new LatLng(currentLoc.getLatitude(), currentLoc.getLongitude());
+        if(checkLocationEnabled() != true) {
+            Intent myIntent = new Intent( Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            this.startActivity(myIntent);
+            return;
+        }
 
-        //Set up starting camera position
-        CameraPosition startingPos = new CameraPosition.Builder()
-                .target(startingLatLng)
-                .zoom(13)
-                .build();
-        map.moveCamera(CameraUpdateFactory.newCameraPosition(startingPos));
+            map.setMyLocationEnabled(true); //show the "current location" button in the top right
+            map.setOnInfoWindowClickListener(this); //set on click callback for the info window
+            map.clear(); //clear any markers currently on the map
+
+            currentLoc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+            //Starting location is the current location
+            LatLng startingLatLng = new LatLng(currentLoc.getLatitude(), currentLoc.getLongitude());
+
+            //Set up starting camera position
+            CameraPosition startingPos = new CameraPosition.Builder()
+                    .target(startingLatLng)
+                    .zoom(13)
+                    .build();
+            map.moveCamera(CameraUpdateFactory.newCameraPosition(startingPos));
+
+
+            addPeopleMarkersToMap();
 
 
 
-        addPeopleMarkersToMap();
 
+    }
 
+    public boolean checkLocationEnabled(){
+        LocationManager locationManager = null;
+        boolean gps_enabled= false,network_enabled = false;
+
+        if(locationManager == null)
+            locationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
+        try{
+            gps_enabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        }catch(Exception ex){
+
+        }
+        try{
+            network_enabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        }catch(Exception ex){
+
+        }
+        if(network_enabled == false || gps_enabled == false){
+            return false;
+        }else{
+            return true;
+        }
 
     }
 

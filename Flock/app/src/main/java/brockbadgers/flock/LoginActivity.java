@@ -140,6 +140,7 @@ public class LoginActivity extends AppCompatActivity {
         ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
 
         // Start a background task to detect faces in the image.
+
         new DetectionTask().execute(inputStream);
     }
 
@@ -179,6 +180,7 @@ public class LoginActivity extends AppCompatActivity {
                 Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
                 mainIntent.putExtra(getString(R.string.user_id), currFaceId);
                 LoginActivity.this.startActivity(mainIntent);
+                dialog.dismiss();
                 finish();
             }
         }
