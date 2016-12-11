@@ -31,6 +31,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import brockbadgers.flock.Helpers.GPSHelper;
 import brockbadgers.flock.Helpers.MSFaceServiceClient;
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
@@ -71,19 +72,18 @@ import com.microsoft.projectoxford.face.contract.VerifyResult;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 import java.util.*;
 
 import brockbadgers.flock.Dialog.CustomDialogClass;
 import brockbadgers.flock.Dialog.DurationDialog;
 import brockbadgers.flock.Dialog.NameDialog;
+import brockbadgers.flock.ImageRecognition.DetectionTask;
+import brockbadgers.flock.ImageRecognition.FacesLoadedCallback;
 import classes.Person;
 
 import com.google.android.gms.common.GooglePlayServicesUtil;
 
 import Firebase.FirebaseCalls;
-import brockbadgers.flock.Services.GPS_Service;
-
 
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnInfoWindowClickListener , GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
@@ -231,8 +231,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         matchedFaceIdList = new ArrayList<>();
         kindaMatchedFaceIdList = new ArrayList<>();
         notMatched = new ArrayList<>();
+
         if(!runtime_permission()){
-            startGPS();
+            GPSHelper.startGPS(this);
         }
 
         if(sharedPref.getString(getString(R.string.name), null) == null &&
@@ -242,13 +243,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             name.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
             name.show();
         }
-
-
-
-
-
-        if(!runtime_permission())
-            startGPS();
     }
 
     public void onGroupAdd(){
@@ -318,17 +312,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    public void startGPS()
-    {
-        Intent i = new Intent(getApplicationContext(), GPS_Service.class);
-        startService(i);
-    }
 
-    public void stopGPS()
-    {
-        Intent i = new Intent(getApplicationContext(), GPS_Service.class);
-        stopService(i);
-    }
 
     private boolean runtime_permission() {
         if(Build.VERSION.SDK_INT >= 23 && ContextCompat.checkSelfPermission(this, android.Manifest.permission
@@ -365,7 +349,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             {
                 if(grantResults.length > 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED)
                 {
-                    startGPS();
+                    GPSHelper.startGPS(this);
                 }else{
                     runtime_permission();
                 }
@@ -436,7 +420,48 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
         // Start a background task to detect faces in the image.
-        new DetectionTask().execute(inputStream);
+        new DetectionTask(this, new FacesLoadedCallback() {
+            @Override
+            public void onFacesLoaded(final Face[] faces) {
+                database.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        for (Face face : faces) {
+                            foundFaces = true;
+                            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                            String ref = sharedPref.getString(getString(R.string.user_id), null);
+
+                            for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
+                                HashMap<String, String> dbMap = (HashMap<String, String>) snapChild.getValue();
+                                //DB Values.
+                                Set<String> dbKey = dbMap.keySet();
+                                for (String dbFaceId : dbKey) {
+                                    if (!face.faceId.toString().equals(ref)) {
+                                        new VerificationTask(face.faceId.toString(), dbFaceId).execute();
+                                    }
+                                }
+                            }
+                        }
+
+                        done = true;
+                        if (matchedFaceIdList.isEmpty()) {
+                            if (foundFaces == false) {
+                                Toast.makeText(getApplicationContext(), "No faces found.", Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(getApplicationContext(), "No results found, please make an account! It's pretty easy", Toast.LENGTH_LONG).show();
+                                foundFaces = false;
+                            }
+                        }
+
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+                });
+            }
+        }).execute(inputStream);
     }
 
     @Override
@@ -735,67 +760,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 UserVerified();
             }
         }
-
-
-    private class DetectionTask extends AsyncTask<InputStream, String, Face[]> {
-        @Override
-        protected Face[] doInBackground(InputStream... params) {
-            // Get an instance of face service client to detect faces in image.
-            FaceServiceClient faceServiceClient = MSFaceServiceClient.getMSServiceClientInstance();
-            try {
-                // Start detection.
-                return faceServiceClient.detect(
-                        params[0],  /* Input stream of image to detect */
-                        true,       /* Whether to return face ID */
-                        false,       /* Whether to return face landmarks */
-                        null);
-            }  catch (Exception e) {
-                return null;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(final Face[] faces) {
-            database.addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    for (Face face : faces) {
-                        foundFaces = true;
-                        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                        String ref = sharedPref.getString(getString(R.string.user_id), null);
-
-                        for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
-                            HashMap<String, String> dbMap = (HashMap<String, String>) snapChild.getValue();
-                            //DB Values.
-                            Set<String> dbKey = dbMap.keySet();
-                            for (String dbFaceId : dbKey) {
-                                if (!face.faceId.toString().equals(ref)) {
-                                    new VerificationTask(face.faceId.toString(), dbFaceId).execute();
-                                }
-                            }
-                        }
-                    }
-
-                    done = true;
-                    if (matchedFaceIdList.isEmpty()) {
-                        if (foundFaces == false) {
-                            Toast.makeText(getApplicationContext(), "No faces found.", Toast.LENGTH_LONG).show();
-                        } else {
-                            Toast.makeText(getApplicationContext(), "No results found, please make an account! It's pretty easy", Toast.LENGTH_LONG).show();
-                            foundFaces = false;
-                        }
-                    }
-
-                }
-
-                @Override
-                public void onCancelled(DatabaseError databaseError) {
-
-                }
-            });
-
-        }
-    }
 
 
 

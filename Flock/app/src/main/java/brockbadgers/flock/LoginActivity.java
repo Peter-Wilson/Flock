@@ -22,6 +22,9 @@ import android.widget.LinearLayout;
 import android.os.Handler;
 
 import brockbadgers.flock.Helpers.MSFaceServiceClient;
+import brockbadgers.flock.ImageRecognition.DetectionTask;
+import brockbadgers.flock.ImageRecognition.FacesLoadedCallback;
+
 import com.google.firebase.database.*;
 import com.microsoft.projectoxford.face.FaceServiceClient;
 import com.microsoft.projectoxford.face.FaceServiceRestClient;
@@ -140,47 +143,22 @@ public class LoginActivity extends AppCompatActivity {
         ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
 
         // Start a background task to detect faces in the image.
-        new DetectionTask().execute(inputStream);
+        new DetectionTask(this, new FacesLoadedCallback() {
+            @Override
+            public void onFacesLoaded(Face[] faces) {
+                String faceId = faces[0].faceId.toString();
+                if (faceId != null) {
+                    currFaceId = faceId;
+                    Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
+                    mainIntent.putExtra(getString(R.string.user_id), currFaceId);
+                    LoginActivity.this.startActivity(mainIntent);
+                    finish();
+                }
+            }
+        }).execute(inputStream);
     }
 
 
 
-    private class DetectionTask extends AsyncTask<InputStream, String, Face[]> {
-        ProgressDialog dialog;
 
-        @Override
-        protected void onPreExecute() {
-            dialog = new ProgressDialog(LoginActivity.this);
-            dialog.setMessage("Detecting Face");
-            dialog.show();
-        }
-
-        @Override
-        protected Face[] doInBackground(InputStream... params) {
-            // Get an instance of face service client to detect faces in image.
-            FaceServiceClient faceServiceClient = MSFaceServiceClient.getMSServiceClientInstance();
-            try {
-                // Start detection.
-                return faceServiceClient.detect(
-                        params[0],  /* Input stream of image to detect */
-                        true,       /* Whether to return face ID */
-                        false,       /* Whether to return face landmarks */
-                        null);
-            }  catch (Exception e) {
-                return null;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(Face[] faces) {
-            String faceId = faces[0].faceId.toString();
-            if (faceId != null) {
-                currFaceId = faceId;
-                Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
-                mainIntent.putExtra(getString(R.string.user_id), currFaceId);
-                LoginActivity.this.startActivity(mainIntent);
-                finish();
-            }
-        }
-    }
 }
