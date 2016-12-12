@@ -1,4 +1,4 @@
-package brockbadgers.flock;
+package brockbadgers.flock.Dialog;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -9,6 +9,8 @@ import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 
+import brockbadgers.flock.MainActivity;
+import brockbadgers.flock.R;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -47,7 +49,7 @@ public class CustomDialogClass extends Dialog implements android.view.View.OnCli
         String userId = sharedPref.getString(c.getString(R.string.user_id), null);
         switch (v.getId()) {
             case R.id.btn_yes:
-                database.child("users").child(userId).child("accepted").setValue(1);
+                database.child("users").child(userId).child("accepted").setValue(true);
                 c.Value(true);
                 dismiss();
                 break;

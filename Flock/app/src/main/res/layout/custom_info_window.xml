@@ -3,11 +3,6 @@
     android:orientation="horizontal" android:layout_width="wrap_content"
     android:layout_height="wrap_content">
 
-    <ImageView
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:id="@+id/infoImage"
-        android:src="@drawable/ic_star_outline_black_24dp" />
 
     <LinearLayout
         android:orientation="vertical"

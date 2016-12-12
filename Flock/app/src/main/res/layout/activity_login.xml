@@ -1,8 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0099cc"
+    android:background="@color/colorPrimary"
     android:orientation="vertical"
     tools:context="brockbadgers.flock.LoginActivity">
     <LinearLayout
@@ -17,7 +18,7 @@
             android:layout_height="250dp"
             android:scaleType="fitXY"
             android:id="@+id/no_login"
-            android:src="@drawable/login_img"/>
+            android:src="@drawable/group"/>
     </LinearLayout>
 
     <LinearLayout
@@ -25,9 +26,8 @@
         style="?metaButtonBarStyle"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="3"
+        android:layout_weight="6"
         android:layout_gravity="bottom|center_horizontal"
-        android:background="@drawable/padded_background"
         android:gravity="center_horizontal|top"
         android:orientation="horizontal"
         tools:ignore="UselessParent">
@@ -36,11 +36,12 @@
             android:id="@+id/login_button"
             style="?metaButtonBarButtonStyle"
             android:textSize="30dp"
-            android:padding="5dp"
-            android:layout_width="wrap_content"
+            android:textColor="@color/colorPrimary"
+            android:fontFamily="sans-serif-condensed"
+            android:layout_width="match_parent"
             android:background="@drawable/rounded_button"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_vertical"
             android:text="@string/login_button" />
 
     </LinearLayout>

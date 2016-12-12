@@ -1,32 +1,29 @@
 package brockbadgers.flock;
 
-import android.*;
 import android.Manifest;
-import android.app.Activity;
 
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.IntentSender;
 
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.app.Dialog;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -35,9 +32,11 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.ImageView;
-import android.widget.TextView;
+import android.widget.Toast;
 
+import brockbadgers.flock.Helpers.DatabaseHelper;
+import brockbadgers.flock.Helpers.GPSHelper;
+import brockbadgers.flock.Helpers.MSFaceServiceClient;
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.ConnectionResult;
@@ -55,36 +54,47 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.firebase.FirebaseApp;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
-import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
 
+import com.microsoft.projectoxford.face.FaceServiceClient;
+import com.microsoft.projectoxford.face.contract.Face;
+import com.microsoft.projectoxford.face.contract.VerifyResult;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.*;
+
+import brockbadgers.flock.Dialog.CustomDialogClass;
+import brockbadgers.flock.Dialog.DurationDialog;
+import brockbadgers.flock.Dialog.NameDialog;
+import brockbadgers.flock.ImageRecognition.DetectionTask;
+import brockbadgers.flock.ImageRecognition.FacesLoadedCallback;
+import brockbadgers.flock.ImageRecognition.VerificationCallback;
+import brockbadgers.flock.ImageRecognition.VerificationTask;
 import classes.Person;
 
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 
 import Firebase.FirebaseCalls;
-import brockbadgers.flock.Services.GPS_Service;
-
 
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnInfoWindowClickListener , GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
+    private static final String TAG = MainActivity.class.getCanonicalName();
     GoogleMap map; //the map shown in the map fragment
     GoogleApiClient mGoogleApiClient; //google api client for location services
     protected static final int REQUEST_CHECK_SETTINGS = 0x1;
@@ -96,17 +106,30 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     HashMap hm = new HashMap();
     ArrayList<Person> people;
     DatabaseReference database;
+    boolean done = false;
+    boolean tookPicture = false;
+    boolean foundFaces = false;
+    private String currFaceId;
+    private boolean faceAlreadyFound = false;
+    SharedPreferences sharedPref;
+
+
+    ArrayList<String> matchedFaceIdList;
+    ArrayList<String> kindaMatchedFaceIdList;
+    ArrayList<Double> notMatched;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        database = FirebaseDatabase.getInstance().getReference();
-        if(!runtime_permission()){
-            startGPS();
-        }
 
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
 
+        //setContentView(R.layout.activity_main);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        database = FirebaseDatabase.getInstance().getReference();
+        sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
         //Set up google api client
         if (mGoogleApiClient == null) {
@@ -162,10 +185,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        //setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
         int permissionCheck = ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION);
 
@@ -175,14 +194,60 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             ((MapFragment) getFragmentManager().findFragmentById(R.id.mapFrag)).getMapAsync(this);
         }
 
-        /*FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                LaunchDurationPicker();
             }
-        });*/
+        });
+
+        if(sharedPref.getString(getString(R.string.user_id), null) == null && getIntent().hasExtra(getString(R.string.user_id))) {
+            //Get the id from the login screen and attemp to verify it
+            //TODO: don't progress unless there is a valid or new user_id
+            Intent intent = getIntent();
+            currFaceId = intent.getStringExtra(getString(R.string.user_id));
+
+            new  LoadExistingUserTask().execute();
+        }
+        else
+        {
+            UserVerified();
+        }
+
+    }
+
+    public void saveFace(String faceId)
+    {
+        Person p = new Person(testLat, testLong);
+        p.setId(faceId);
+        p.setName("Test Person");
+        database.child("users").child(p.getId()).setValue(p);
+        SharedPreferences.Editor editor =sharedPref.edit();
+        editor.putBoolean("isActivated",true);
+        editor.putString(getString(R.string.user_id), faceId);
+        editor.commit();
+    }
+
+    public void UserVerified()
+    {
+        database = FirebaseDatabase.getInstance().getReference();
+        matchedFaceIdList = new ArrayList<>();
+        kindaMatchedFaceIdList = new ArrayList<>();
+        notMatched = new ArrayList<>();
+
+        if(!runtime_permission()){
+            GPSHelper.startGPS(this);
+        }
+
+        if(sharedPref.getString(getString(R.string.name), null) == null &&
+                (sharedPref.getString(getString(R.string.colour), null) == null))
+        {
+            NameDialog name = new NameDialog(this);
+            name.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+            name.show();
+        }
     }
 
     public void onGroupAdd(){
@@ -208,21 +273,49 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
-
-
     }
 
-    public void startGPS()
-    {
-        Intent i = new Intent(getApplicationContext(), GPS_Service.class);
-        startService(i);
+    private class VerificationAlreadyInTask extends AsyncTask<Void, String, VerifyResult> {
+        private UUID mFaceId0;
+        private UUID mFaceId1;
+        private String newId;
+        private String currentId;
+
+        public VerificationAlreadyInTask(String mFaceId0, String mFaceId1) {
+            newId = mFaceId0;
+            currentId = mFaceId1;
+            this.mFaceId0 = UUID.fromString(mFaceId0);
+            this.mFaceId1 = UUID.fromString(mFaceId1);
+        }
+
+        @Override
+        protected VerifyResult doInBackground(Void... voids) {
+            try {
+                VerifyResult v =  MSFaceServiceClient.getMSServiceClientInstance().verify(mFaceId0, mFaceId1);
+                if(v.confidence > 0.5 || v.isIdentical) {
+                    currFaceId = newId;
+                    faceAlreadyFound = true;
+                }
+                return null;
+
+            } catch (Exception e) {
+                Log.e(TAG, "" + e);
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(VerifyResult verifyResult) {
+            if (verifyResult.isIdentical && !faceAlreadyFound) {
+                Log.d(TAG, "YAY");
+            } else {
+                Log.d(TAG, "NAY");
+            }
+
+        }
     }
 
-    public void stopGPS()
-    {
-        Intent i = new Intent(getApplicationContext(), GPS_Service.class);
-        stopService(i);
-    }
+
 
     private boolean runtime_permission() {
         if(Build.VERSION.SDK_INT >= 23 && ContextCompat.checkSelfPermission(this, android.Manifest.permission
@@ -257,9 +350,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
             case 100:
             {
-                if( grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED)
+                if(grantResults.length > 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED)
                 {
-                    startGPS();
+                    GPSHelper.startGPS(this);
                 }else{
                     runtime_permission();
                 }
@@ -292,13 +385,52 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
 
-    private void openCameraShowPreview() {
+    public void openCameraShowPreview() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
         }
     }
 
+
+    //AFTER the user has taken a pic....
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+            Bundle extras = data.getExtras();
+            //Get the image.
+            Bitmap mBitmap = (Bitmap) extras.get("data");
+
+
+            //TODO: Open peters date time class.
+//            Intent mainIntent = new Intent(LoginActivity.this, MainActivity.class);
+//            MainActivity.this.startActivity(mainIntent);
+
+            detect(mBitmap);
+        }
+    }
+
+    private void detect(Bitmap bitmap) {
+        // Put the image into an input stream for detection.
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
+
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        String userId = sharedPref.getString(getString(R.string.user_id), null);
+        database.child("users").child(userId).child("accepted").setValue(true);
+        tookPicture = true;
+
+
+        // Start a background task to detect faces in the image.
+        new DetectionTask(this, new FacesLoadedCallback() {
+            @Override
+            public void onFacesLoaded(final Face[] faces) {
+                foundFaces = faces.length > 0;
+                DatabaseHelper.MatchFacesWithDB(MainActivity.this, faces, database, matchedFaceIdList);
+            }
+        }).execute(inputStream);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -322,56 +454,78 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return super.onOptionsItemSelected(item);
     }
 
+    public void LaunchDurationPicker()
+    {
+        DurationDialog howLong = new DurationDialog(this);
+        howLong.show();
+    }
+
 
     public void setUpMap() {
 
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
+
             return;
         }
-        map.setMyLocationEnabled(true); //show the "current location" button in the top right
-        map.setOnInfoWindowClickListener(this); //set on click callback for the info window
-        map.clear(); //clear any markers currently on the map
-        map.setInfoWindowAdapter(new CustomInfoWindow()); //use the custom info window
 
-        currentLoc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        //Starting location is the current location
-        LatLng startingLatLng = new LatLng(currentLoc.getLatitude(), currentLoc.getLongitude());
+        if(checkLocationEnabled() != true) {
+            Intent myIntent = new Intent( Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            this.startActivity(myIntent);
+            return;
+        }
 
-        //Set up starting camera position
-        CameraPosition startingPos = new CameraPosition.Builder()
-                .target(startingLatLng)
-                .zoom(13)
-                .build();
-        map.moveCamera(CameraUpdateFactory.newCameraPosition(startingPos));
+            map.setMyLocationEnabled(true); //show the "current location" button in the top right
+            map.setOnInfoWindowClickListener(this); //set on click callback for the info window
+            map.clear(); //clear any markers currently on the map
 
-       /* Person testPerson = new Person(testLat, testLong);
+            currentLoc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+            //Starting location is the current location
+            LatLng startingLatLng = new LatLng(currentLoc.getLatitude(), currentLoc.getLongitude());
 
-        people = new ArrayList<>();
-        ArrayList<MarkerOptions> markersOfPeople = new ArrayList<>();
-
-        people.add(testPerson);
-
-        final Handler h = new Handler();
-        final int delay = 3 * 1000;*/
-
-        addPeopleMarkersToMap();
+            //Set up starting camera position
+            CameraPosition startingPos = new CameraPosition.Builder()
+                    .target(startingLatLng)
+                    .zoom(13)
+                    .build();
+            map.moveCamera(CameraUpdateFactory.newCameraPosition(startingPos));
 
 
+            addPeopleMarkersToMap();
+
+
+
+
+    }
+
+    public boolean checkLocationEnabled(){
+        LocationManager locationManager = null;
+        boolean gps_enabled= false,network_enabled = false;
+
+        if(locationManager == null)
+            locationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
+        try{
+            gps_enabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        }catch(Exception ex){
+
+        }
+        try{
+            network_enabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        }catch(Exception ex){
+
+        }
+        if(network_enabled == false || gps_enabled == false){
+            return false;
+        }else{
+            return true;
+        }
 
     }
 
     public void addPeopleMarkersToMap(){
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        final String userId = sharedPref.getString(getString(R.string.user_id), null);
+       final  String userId = sharedPref.getString(getString(R.string.user_id), null);
 
         database.child("users").child(userId).addChildEventListener(new ChildEventListener() {
 
@@ -382,10 +536,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                if(done){
+                    for(String faceId : matchedFaceIdList){
+                        database.child("users").child(faceId).child("group").setValue(1);
+                    }
+                }
+
 
                if(dataSnapshot.getKey().equals("group")){
                    Long value = (Long) dataSnapshot.getValue();
-                   if(value != 0){
+                   if(value != 0 && !tookPicture ){
                        onGroupAdd();
                    }
                }
@@ -408,19 +568,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+
+
         database.child("users").addValueEventListener(new ValueEventListener() {
+
+
             @Override
             public void onDataChange(DataSnapshot snapshot) {
+                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.super.getApplicationContext());
+                String userId = sharedPref.getString(getString(R.string.user_id), null);
+                int myGroup = sharedPref.getInt("myGroup",-1);
+
+                float[] colours = { BitmapDescriptorFactory.HUE_GREEN, BitmapDescriptorFactory.HUE_CYAN, BitmapDescriptorFactory.HUE_AZURE,  BitmapDescriptorFactory.HUE_BLUE, BitmapDescriptorFactory.HUE_VIOLET, BitmapDescriptorFactory.HUE_YELLOW, BitmapDescriptorFactory.HUE_ORANGE, BitmapDescriptorFactory.HUE_ROSE, BitmapDescriptorFactory.HUE_YELLOW, BitmapDescriptorFactory.HUE_VIOLET /* etc */ };
+
                 for (DataSnapshot postSnapshot : snapshot.getChildren()) {
                     Person p = postSnapshot.getValue(Person.class);
-                    if(!p.getId().equals(userId)) {
+                    if(!p.getId().equals(userId) && p.getGroup() == 1) {
                         if (hm.containsKey(p.getId())) {
+
                             Marker marker = (Marker) hm.get(p.getId());
-                            marker.setPosition(new LatLng(p.getLat(), p.getLong())); // Update the marker
+                            marker = map.addMarker(new MarkerOptions()
+                                    .position(new LatLng(p.getLat(), p.getLong()))
+                                    .icon(BitmapDescriptorFactory.defaultMarker(colours[p.getColour()])));
                         } else {
                             Marker usersMarker = map.addMarker(new MarkerOptions()
                                     .position(new LatLng(p.getLat(), p.getLong()))
-                                    .title("Name: " + p.getName()));
+                                    .title(p.getName())
+                                    .icon(BitmapDescriptorFactory.defaultMarker(colours[p.getColour()])));
                             hm.put(p.getId(), usersMarker);
                         }
                     }
@@ -435,7 +609,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
 
-    }
+   }
+
+
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -515,88 +691,95 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mGoogleApiClient.disconnect();
     }
 
-    /**
-     * The custom info window which displays info about the house
-     */
-    class CustomInfoWindow extends Activity implements GoogleMap.InfoWindowAdapter{
-        boolean doneLoadingImage = false; //if the image has finished downloading
-        Marker m;
+    private class LoadExistingUserTask extends AsyncTask<String, String, String> {
+        ProgressDialog dialog;
+
 
         @Override
-        public View getInfoWindow(Marker marker) {
-            return null;
+        protected void onPreExecute() {
+            dialog = new ProgressDialog(MainActivity.this);
+            dialog.setMessage("Verifying Face with Database");
+            dialog.show();
+        }
+
+        //Determine if that user is already in the DB
+        @Override
+        protected String doInBackground(String... params) {
+            // Get an instance of face service client to detect faces in image.
+            FaceServiceClient faceServiceClient = MSFaceServiceClient.getMSServiceClientInstance();
+            try {
+                Query queryRef = database.orderByKey();
+                //This shouldn't be on Change, we want to call it before we input it into the db
+                queryRef.addChildEventListener(new ChildEventListener() {
+                    @Override
+                    public void onChildAdded(DataSnapshot dataSnapshot, String previousChild) {
+                        if (currFaceId != null) {
+                            for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
+                                Person p = snapChild.getValue(Person.class);
+                                if (!p.getId().equals(currFaceId)) {
+                                    Log.d(TAG, p.getId());
+                                    Log.d(TAG, currFaceId);
+                                    new VerificationAlreadyInTask(p.getId(), currFaceId).execute();
+                                }
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onChildChanged(DataSnapshot dataSnapshot, String s) { }
+
+                    @Override
+                    public void onChildRemoved(DataSnapshot dataSnapshot) { }
+
+                    @Override
+                    public void onChildMoved(DataSnapshot dataSnapshot, String s) { }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        Log.d(TAG, "SOMETHING BAD HAPPENED WHEN A VALUE CHANGED: " + databaseError.getMessage());
+                    }
+                });
+                return null;
+            }  catch (Exception e) {
+                return null;
+            }
         }
 
         @Override
-        public View getInfoContents(Marker marker) {
-            //If a new marker has been selected, the image will not have been loaded
-            if(!marker.equals(m)){
-                doneLoadingImage = false;
-            }
-            m = marker;
-
-            //Inflate the layout and get the components
-            View v = getLayoutInflater().inflate(R.layout.custom_info_window, null);
-            ImageView infoImage = (ImageView)v.findViewById(R.id.infoImage);
-            TextView infoPrice = (TextView)v.findViewById(R.id.infoPrice);
-            TextView infoAddress = (TextView)v.findViewById(R.id.infoAddress);
-
-
-
-
-            //Set the two text fields on the info window
-            infoPrice.setText("Bum Bum");
-            infoAddress.setText("I will be back at 7PM!");
-
-            //Load the image with Picasso, using a generic house picture as a placeholder
-            //Picasso.with(getApplicationContext()).placeholder(getResources().getDrawable(R.drawable.ic_star_outline_black_24dp)).into(infoImage, this);
-
-            return v;
-        }
-
-        /**
-         * When Picasso returns with the valid image
-         */
-
-        public void onSuccess() {
-            //If the image is not already loaded, reopen the info window to show it
-            if(!doneLoadingImage){
-                Log.d("Picasso", "Image loaded");
-                doneLoadingImage = true;
-                m.showInfoWindow();
+        protected void onPostExecute(String string) {
+                dialog.hide();
+                if(!faceAlreadyFound)
+                    saveFace(currFaceId);
+                UserVerified();
             }
         }
 
-        /**
-         * When Picasso can't find the image
-         */
 
-        public void onError() {
-            Log.e("Picasso", "Image load failed");
-            doneLoadingImage = true;
+
+
+
+    class NotificationKeyTask extends AsyncTask<GroupRequest, Void, String> {
+
+        @Override
+        protected String doInBackground(GroupRequest... params) {
+            GroupRequest param = params[0];
+            try {
+                return new FirebaseCalls().addtNotificationKey(param.getLeaderName(), param.getRequestIds(), param.getCtx());
+            } catch (Exception e) {
+                Log.e("Exception", "" + e);
+                return "No";
+            }
         }
 
-
+        @Override
+        protected void onPostExecute(String s) {
+            Log.d(FirebaseCalls.class.getName(), s);
+        }
     }
 
 
 }
 
-class NotificationKeyTask extends AsyncTask<GroupRequest, Void, String> {
 
-    @Override
-    protected String doInBackground(GroupRequest... params) {
-        GroupRequest param = params[0];
-        try {
-            return new FirebaseCalls().addtNotificationKey(param.getLeaderName(), param.getRequestIds(), param.getCtx());
-        } catch (Exception e) {
-            Log.e("Exception", "" + e);
-            return "No";
-        }
-    }
 
-    @Override
-    protected void onPostExecute(String s) {
-        Log.d(FirebaseCalls.class.getName(), s);
-    }
-}
+
