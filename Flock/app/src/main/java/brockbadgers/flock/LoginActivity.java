@@ -1,11 +1,9 @@
 package brockbadgers.flock;
 
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
@@ -21,7 +19,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.os.Handler;
 
-import brockbadgers.flock.Helpers.MSFaceServiceClient;
 import brockbadgers.flock.ImageRecognition.DetectionTask;
 import brockbadgers.flock.ImageRecognition.FacesLoadedCallback;
 
@@ -32,7 +29,6 @@ import com.microsoft.projectoxford.face.contract.Face;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -157,8 +153,4 @@ public class LoginActivity extends AppCompatActivity {
             }
         }).execute(inputStream);
     }
-
-
-
-
 }
