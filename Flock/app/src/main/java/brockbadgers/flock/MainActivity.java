@@ -79,6 +79,8 @@ import brockbadgers.flock.Dialog.DurationDialog;
 import brockbadgers.flock.Dialog.NameDialog;
 import brockbadgers.flock.ImageRecognition.DetectionTask;
 import brockbadgers.flock.ImageRecognition.FacesLoadedCallback;
+import brockbadgers.flock.ImageRecognition.VerificationCallback;
+import brockbadgers.flock.ImageRecognition.VerificationTask;
 import classes.Person;
 
 import com.google.android.gms.common.GooglePlayServicesUtil;
@@ -100,7 +102,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     HashMap hm = new HashMap();
     ArrayList<Person> people;
     DatabaseReference database;
-    VerifyResult v;
     boolean done = false;
     boolean tookPicture = false;
     boolean foundFaces = false;
@@ -437,7 +438,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 Set<String> dbKey = dbMap.keySet();
                                 for (String dbFaceId : dbKey) {
                                     if (!face.faceId.toString().equals(ref)) {
-                                        new VerificationTask(face.faceId.toString(), dbFaceId).execute();
+                                        new VerificationTask(face.faceId.toString(), dbFaceId, matchedFaceIdList, new VerificationCallback() {
+                                            @Override
+                                            public void VerificationResult(VerifyResult verifyResult) {
+
+                                            }
+                                        }).execute();
                                     }
                                 }
                             }
@@ -763,44 +769,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
-    class VerificationTask extends AsyncTask<Void, String, VerifyResult> {
-        private final String TAG = VerificationTask.class.getCanonicalName();
-        private UUID mFaceId0;
-        private UUID mFaceId1;
 
-        public VerificationTask(String mFaceId0, String mFaceId1) {
-            this.mFaceId0 = UUID.fromString(mFaceId0);
-            this.mFaceId1 = UUID.fromString(mFaceId1);
-        }
-
-        @Override
-        protected VerifyResult doInBackground(Void... voids) {
-            try {
-                VerifyResult v =  MSFaceServiceClient.getMSServiceClientInstance().verify(mFaceId0, mFaceId1);
-                if(v != null && v.confidence > 0.5 || v.isIdentical) {
-                    matchedFaceIdList.add(mFaceId1.toString());
-                }
-                return v;
-            } catch (Exception e) {
-                String error = e.getMessage();
-                Log.e(TAG, "" + e);
-                return null;
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            Log.d(TAG, "VERIFY RESULT WAS CANCELLED");
-        }
-
-        @Override
-        protected void onPostExecute(VerifyResult verifyResult) {
-            Log.d("We are verifying", "Now");
-            if (verifyResult.isIdentical) {
-
-            }
-        }
-    }
 
     class NotificationKeyTask extends AsyncTask<GroupRequest, Void, String> {
 
