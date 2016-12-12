@@ -31,6 +31,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import brockbadgers.flock.Helpers.DatabaseHelper;
 import brockbadgers.flock.Helpers.GPSHelper;
 import brockbadgers.flock.Helpers.MSFaceServiceClient;
 import com.google.android.gms.appindexing.Action;
@@ -216,7 +217,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void saveFace(String faceId)
     {
-        Person p = new Person(43.471265, -80.542684);
+        Person p = new Person(testLat, testLong);
         p.setId(faceId);
         p.setName("Test Person");
         database.child("users").child(p.getId()).setValue(p);
@@ -282,8 +283,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             currentId = mFaceId1;
             this.mFaceId0 = UUID.fromString(mFaceId0);
             this.mFaceId1 = UUID.fromString(mFaceId1);
-
-
         }
 
         @Override
@@ -391,7 +390,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
-    //AFTER the user has taken a pick....
+    //AFTER the user has taken a pic....
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
@@ -424,48 +423,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         new DetectionTask(this, new FacesLoadedCallback() {
             @Override
             public void onFacesLoaded(final Face[] faces) {
-                database.addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        for (Face face : faces) {
-                            foundFaces = true;
-                            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                            String ref = sharedPref.getString(getString(R.string.user_id), null);
-
-                            for (DataSnapshot snapChild : dataSnapshot.getChildren()) {
-                                HashMap<String, String> dbMap = (HashMap<String, String>) snapChild.getValue();
-                                //DB Values.
-                                Set<String> dbKey = dbMap.keySet();
-                                for (String dbFaceId : dbKey) {
-                                    if (!face.faceId.toString().equals(ref)) {
-                                        new VerificationTask(face.faceId.toString(), dbFaceId, matchedFaceIdList, new VerificationCallback() {
-                                            @Override
-                                            public void VerificationResult(VerifyResult verifyResult) {
-
-                                            }
-                                        }).execute();
-                                    }
-                                }
-                            }
-                        }
-
-                        done = true;
-                        if (matchedFaceIdList.isEmpty()) {
-                            if (foundFaces == false) {
-                                Toast.makeText(getApplicationContext(), "No faces found.", Toast.LENGTH_LONG).show();
-                            } else {
-                                Toast.makeText(getApplicationContext(), "No results found, please make an account! It's pretty easy", Toast.LENGTH_LONG).show();
-                                foundFaces = false;
-                            }
-                        }
-
-                    }
-
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-
-                    }
-                });
+                foundFaces = faces.length > 0;
+                DatabaseHelper.MatchFacesWithDB(MainActivity.this, faces, database, matchedFaceIdList);
             }
         }).execute(inputStream);
     }
